@@ -734,8 +734,9 @@ Two properties the source guarantees:
 - **Control changes?** `controlFieldsAffectRisk` fires on `status` or
   `effectiveness`; every asset the control is applied to is recalculated.
 - **PHI exposure changes?** `phiVolume` on the asset recalculates it. Note:
-  `AssetPHI` record counts and `DataFlow` rows are read *during* derivation but
-  editing a `DataFlow` has **no trigger wired** — see Limitations.
+  `AssetPHI` record counts are read *during* derivation but changing one has no
+  trigger. `DataFlow` changes **do** now recompute the source asset, via
+  `onDataFlowsChanged` on the CSV import path (reason `PHI_CHANGED`).
 - **Access changes?** Grant, update and revoke each recalculate the target asset.
 - **Threat added?** Creation and status change recalculate the asset; only OPEN
   or INVESTIGATING at HIGH/CRITICAL contributes.
@@ -857,9 +858,11 @@ a comment records that typing the drawer as the list type printed
 ### 13.3 PHI Flow — `IMPLEMENTED`
 
 **Frontend.** `PhiFlow.tsx` + `PhiSankey.tsx`. **Backend.** `GET /api/dataflows`.
-**Risk.** Flows feed exposure during derivation, but **editing a flow triggers
-no recomputation** — there is no POST/PATCH on `/api/dataflows` at all.
-**Status nuance.** Read-only in the API. Flows enter only via CSV import or seed.
+**Risk.** Unencrypted outbound flows feed the source asset's exposure, and a
+CSV import of flows now recalculates those assets after the transaction
+commits (`onDataFlowsChanged`, reason `PHI_CHANGED`).
+**Status nuance.** Still no POST/PATCH on `/api/dataflows`; flows enter only via
+CSV import or seed. A future write API must call the same trigger.
 
 Includes a PHI Exposure Score shown in the header. **Verify before quoting it
 commercially** — it is computed in the frontend, not by the risk engine.
@@ -1241,7 +1244,7 @@ recorded in this document.**
 |---|---|---|---|---|---|---|---|---|
 | Dashboard | ✅ | composed | many | 9 reads | admin-gated audit card | read | no | IMPLEMENTED |
 | Assets | ✅ | ✅ | Asset, AssetPHI | 9 | A / A+An | ✅ | ✅ | IMPLEMENTED |
-| PHI Flow | ✅ | read-only | DataFlow | 2 | all read | reads | no | PARTIAL (no writes) |
+| PHI Flow | ✅ | read via API, written by import | DataFlow | 2 | all read | ✅ on import | ✅ | PARTIAL (no write API) |
 | Risks | ✅ | ✅ | Risk, RiskHistory | 4 | A+An recompute | ✅ | ✅ | IMPLEMENTED |
 | Vendors | ✅ | ✅ | Vendor, VendorRisk | 9 | A / A+An | ✅ | ✅ | IMPLEMENTED |
 | Access | ✅ | ✅ | AccessGrant, Identity | 6 | A grant / An review | ✅ | ✅ | IMPLEMENTED |
@@ -1621,7 +1624,8 @@ remediation; audit trail; global search; RBAC; tenancy; light/dark; responsive.
 **NEXT (highest value, no architectural change).**
 1. Expose `/api/reports/risk-assessment` in the UI — already built.
 2. Writable data flows — the only entity with no create/update path.
-3. Recompute trigger on flow change — currently a gap in the risk graph.
+3. ~~Recompute trigger on flow change~~ — **done**; imports of flows, access
+   grants and threats now recalculate the affected assets after commit.
 4. Read logging in the audit trail — the notable HIPAA-oriented gap.
 5. SSO/SAML — `externalAuthId` exists unused; required for enterprise.
 6. MFA on DRISHTI's own login.
@@ -1642,8 +1646,15 @@ HICP); benchmarking; SCIM; background workers; multi-org for BPOs.
   "undefined assets"; a wrong `subject` type printed "undefined: undefined".
   Highest-leverage debt in the repo.
 - **No automated discovery.** The single largest product gap.
-- **Data flows are read-only** via the API, and flow changes trigger no
-  recomputation.
+- **Data flows are read-only** via the API — they enter only by CSV import or
+  seed. Import now recomputes the affected assets; there is still no
+  create/update endpoint, so a write API would need its own trigger call.
+- **The import path's recomputation is not covered by an integration test.**
+  The decision logic (`assetsAffectedBy`) is unit-tested; the end-to-end
+  behaviour is not. Note for whoever writes it: `seedFixture` stores
+  `exposure: 5` on Test Billing while the derivation yields 2, so the first
+  recalculation moves the score for that reason and will confound a naive
+  assertion — settle the asset with a recompute before importing the flow.
 - **Rate limiting is in-memory.** Resets on deploy; not shared across instances;
   will not hold under horizontal scaling.
 - **CSP is disabled** on the backend; none on the frontend.
