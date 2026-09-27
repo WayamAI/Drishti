@@ -1,4 +1,14 @@
 import "@testing-library/jest-dom";
+import { configure } from "@testing-library/react";
+
+/*
+ * findBy* gives up after 1s by default. A page that mounts with its query
+ * layer takes ~1s under a full parallel run, so "Controls: withholds New
+ * control from an analyst" failed about one run in six at 1,065ms while
+ * passing alone. 3s leaves room for a loaded machine without hiding a real
+ * hang, which still fails.
+ */
+configure({ asyncUtilTimeout: 3000 });
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,
