@@ -1,22 +1,19 @@
-# MedGuard — by Wayam AI
+# Drishti — by Wayam AI
 
-A healthcare governance and compliance dashboard built for Meridian
-Health: real time PHI monitoring, access and identity management, threat
-detection, policy and compliance tracking, AI governance oversight, audit
-trails, and a risk register, all in one console.
+A healthcare PHI governance console: where patient data lives, how it moves
+between systems, who can reach it, which vendors touch it, what is being
+detected against it, and what has to be fixed first — in one place.
 
-This is the frontend. It talks to the MedGuard backend API over HTTP —
-authentication and six screens read live data; the remaining screens are
-still driven by the mock dataset while their endpoints are built. See
-[Data sources](#data-sources) for exactly which is which.
+This is the frontend. Every screen reads the Drishti backend API over HTTP;
+nothing is driven by fixture data. See [Data sources](#data-sources).
 
 ## Stack
 
 - [Vite](https://vitejs.dev/) + [React 18](https://react.dev/) + TypeScript
-- [Tailwind CSS](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) component primitives
+- [Tailwind CSS](https://tailwindcss.com/) on the Chronos design tokens (see [Design system](#design-system))
 - [React Router](https://reactrouter.com/) for routing and route protection
 - [TanStack Query](https://tanstack.com/query) for all backend reads, behind the shared `useApiQuery` hook
-- [Recharts](https://recharts.org/) for charts, [Sonner](https://sonner.emilkowal.ski/) for toasts
+- [Sonner](https://sonner.emilkowal.ski/) for toasts, [Lucide](https://lucide.dev/) for interface icons
 - [Vitest](https://vitest.dev/) + Testing Library for tests
 
 ## Running locally
@@ -36,10 +33,8 @@ The dev server is pinned to port 8080 in `vite.config.ts`, and Vite falls
 back to the next free port if 8080 is already taken — check the URL it
 prints.
 
-> **Note:** if your checkout path contains a space (e.g. a folder named
-> `Wayam AI`), use `npm` rather than `bun` — `bun install`/`bun run` hit an
-> internal bun bug (`CouldntReadCurrentDirectory`) triggered by the space,
-> even though a `bun.lockb` is present in the repo.
+> **Note:** use `npm`. The repo carries only `package-lock.json`; bun is not
+> supported (it also fails on checkout paths containing a space).
 
 Other scripts: `npm run build`, `npm run lint`, `npm run test`, `npm run preview`.
 
@@ -64,10 +59,8 @@ vercel --prod
 
 Three things `vercel.json` is doing that are easy to undo by accident:
 
-- **`installCommand` is pinned to `npm ci`.** A `bun.lockb` sits beside
-  `package-lock.json` in this repo, and left to auto-detect Vercel may pick
-  bun — see the note above about bun and spaces in paths. The pin removes the
-  ambiguity.
+- **`installCommand` is pinned to `npm ci`**, so the install always uses
+  `package-lock.json` exactly.
 - **The catch-all rewrite to `/index.html`** is the SPA fallback, replacing
   what `nginx.conf` does in the Docker image. It is safe for assets because
   Vercel matches the filesystem *before* applying rewrites.
@@ -90,77 +83,94 @@ minutes of no traffic, and the next request waits 30-60s for it to wake.
 
 ## Data sources
 
+Every screen is backed by a live endpoint, read through `useApiQuery`
+(`src/hooks/useApiQuery.ts`), which adds polling, a tighter retry cadence while
+the backend is down, and an `isReconnecting` state so a view keeps its last
+good data behind a notice instead of blanking out.
+
 | Screen | Source |
 | --- | --- |
-| PHI Flow | `GET /api/dataflows` via `useDataFlows` |
-| Risk Register | `GET /api/risks` via `useRisks` / `useRawRisks` |
-| Vendor Risk | `GET /api/vendors` via `useVendors` |
-| Access | `GET /api/access` via `useAccess` |
-| Threats | `GET /api/threats` via `useThreats` |
-| Dashboard | **Mixed** — the four KPI cards aggregate `useAssets` + `useRisks` + `useDataFlows`; the frameworks strip, department bar chart and activity feed are still `src/data/mock.ts` |
-| Policy, Audit, AI Governance | `src/data/mock.ts` — no endpoints for these yet |
+| Dashboard | `/api/assets`, `/api/risks`, `/api/dataflows`, `/api/vendors`, `/api/access/summary`, `/api/threats/summary` |
+| Threats | `/api/threats` (+ `/summary`, `/:id/status`) |
+| Access & Identity | `/api/access` (+ `/summary`, `/:id/revoke`, `/:id/review`) |
+| PHI Flow | `/api/dataflows` |
+| Assets | `/api/assets` (+ `/:id` detail graph) |
+| Vendors | `/api/vendors` |
+| Risk Register | `/api/risks` (+ `/:assetId/recompute`) |
+| Remediation | `/api/remediations` (+ `/summary`, `/:id/status`, `/:id/assign`) |
+| Controls, Policies | `/api/controls`, `/api/policies` |
+| Audit Trail (admin) | `/api/audit` |
+| Data Import (admin) | `/api/import` (contract, template, validate, commit) |
+| Identities & Members, Settings | `/api/identities`, `/api/organization` |
+| Global search (⌘K / Ctrl K) | `/api/search` |
 
-Every API-backed hook goes through `useApiQuery` (`src/hooks/useApiQuery.ts`),
-which adds a polling heartbeat, a tighter retry cadence while the backend
-is down, and an `isReconnecting` state so a view keeps its last good data
-behind a notice instead of blanking out.
+### Deep links
+
+List pages seed their search and filters from the URL
+(`src/hooks/useListControls.ts`), so any view can be linked to directly —
+`/threats?severity=CRITICAL`, `/access?flaggedOnly=true`,
+`/assets?search=Billing`, `/risks?open=102`. The dashboard's Action Centre,
+the risk matrix and global search all use this, so a finding always lands on
+the records behind it rather than on an unfiltered list.
 
 ## Signing in
 
-`src/hooks/use-auth.tsx` authenticates against the backend:
-`POST /api/auth/login` returns a bearer token, and the hook registers that
-token with `setAuthTokenGetter()` so every subsequent request carries it.
+`src/hooks/use-auth.tsx` authenticates against `POST /api/auth/login`.
 Credentials are real — the backend decides who gets in.
 
-The token is held **in memory only**, in a ref inside `AuthProvider`. It is
-never written to `localStorage` or `sessionStorage`, so an XSS payload that
-can read browser storage finds nothing. The cost is that a reload ends the
-session: the API exposes `/login`, `/logout` and `/me` but no refresh-token
-endpoint, so rather than fake a restore, a reload lands on a clean
-logged-out state and `ProtectedRoute` redirects to `/login`. A breadcrumb
-flag (`src/lib/sessionBreadcrumb.ts`) lets the login page say the session
-ended rather than showing a bare form. No token is ever in that flag.
+The access token (JWT, 1 hour) is held **in memory only** and never written
+to `localStorage` or `sessionStorage`. The refresh token lives in the httpOnly
+`drishti_refresh` cookie, which script cannot read; on load the app calls
+`POST /api/auth/refresh` and the browser presents the cookie, so a reload
+keeps you signed in without any credential being reachable from JavaScript.
+A refresh that fails for a transient reason (rate limit, network) is retried
+with backoff rather than ending the session — only an answer from the server
+ends it.
 
-Logging out clears the token first and then calls `/api/auth/logout`, so
-the session ends locally even if the API is unreachable.
+Logging out clears the token first and then calls `/api/auth/logout`, so the
+session ends locally even if the API is unreachable.
 
-## Wayam AI rebrand
+## Design system
 
-This app was rebranded from its original "Joules to Watts" styling to
-Wayam AI:
+Drishti shares the **Chronos** design system with its sibling Wayam AI
+console, so the two read as one product family.
 
-- The sidebar and login page use the Wayam wordmark (light or dark
-  variant, chosen automatically by the active theme) and the Wayam
-  favicon.
-- The primary brand color is Wayam's signature orange, defined once as
-  CSS custom properties in `src/index.css` (`--primary`, `--primary-hover`,
-  `--ring`, `--sidebar-active`) and consumed everywhere through Tailwind
-  tokens (`tailwind.config.ts`) rather than hardcoded hex values, so
-  buttons, links, active nav state, focus rings, and form controls all
-  stay in sync.
-- Severity/status colors (red for critical, amber for warning, green for
-  success/passing, blue for informational badges) are left as
-  conventional semantic colors rather than orange, so a critical alert
-  still reads as urgent rather than as a primary action.
+- **Tokens** — `src/styles/tokens.css`. Two tiers: a reference palette
+  (`--ref-*`, identical to Chronos) and semantic tokens (`--sem-*`) that
+  components consume through Tailwind utilities in `tailwind.config.ts`.
+  Components never reference a raw palette value.
+- **Surfaces** — a light grey page, white containers, translucent hairline
+  strokes, no shadows on panels. Dark mode is a toggle, not the default.
+- **Type** — Michroma for display and figures, Geist for everything else.
+- **Controls** — pills: buttons, inputs, selects and filter chips are
+  `rounded-full`. The primary action is black in light mode and white in dark;
+  Wayam orange is identity only (logo and the domain marks), never a control.
+- **Status** — solid pill badges for the one status a row is about; soft
+  tinted tags for attributes and multi-tag cells.
+- **Risk bands** — five bands, five fills (`--sem-band-*`), the same colour in
+  every badge, matrix chip and distribution bar.
+- **Domain marks** — the twelve Drishti icons in
+  `src/components/DomainIcon.tsx`, traced from `design/icons-source/`. They
+  appear in the sidebar, on every KPI tile and in page headers.
+- **Formatting** — numbers and dates always format in `en-US`
+  (`src/lib/format.ts`), so a figure reads the same for every viewer.
 
 ## Project structure
 
 ```
 src/
-  pages/         One file per route (Dashboard, PhiFlow, Access, Threats,
-                 Policy, AI, Audit, Risks, Vendors, Login, NotFound)
-  components/    Layout (sidebar + topbar), ProtectedRoute, DataState,
-                 PhiSankey, RiskMatrix, ui-bits.tsx (Card/Btn/Badge/Modal/
-                 etc.), components/ui/* (shadcn primitives)
-  hooks/         use-auth (bearer-token session), useApiQuery (shared query
-                 behaviour) and the per-endpoint hooks built on it
-                 (useAssets, useRisks, useDataFlows, useVendors, useAccess,
-                 useThreats), use-theme, use-mobile
-  lib/           apiClient (fetch wrapper + ApiError), apiTypes (wire
-                 shapes), mappers (wire -> chart props), tone, icons
-  store/         AppStore — in-memory state for alerts, approvals,
-                 notifications
-  data/          mock.ts — the dataset still backing the unwired screens
+  pages/         One file per route
+  components/    Layout (sidebar, top bar, command palette), DataTable,
+                 PhiSankey, RiskMatrix, DomainIcon, ui-bits (atoms: Card,
+                 Btn, Badge, Input, Modal, SlideOver), ui-patterns (page
+                 header, KPI tile, filters, risk vocabulary), components/ui/*
+                 (shadcn primitives)
+  hooks/         use-auth (session), useApiQuery (shared query behaviour),
+                 useListControls (paging, search, URL-seeded filters) and the
+                 per-endpoint hooks built on them
+  lib/           apiClient, apiTypes (wire shapes), mappers, tone, format,
+                 icons, dates
+  styles/        tokens.css — the design tokens
   test/          Vitest suites; live-backend.test.tsx needs a running API
 ```
 
@@ -178,20 +188,10 @@ as coverage. CI excludes it outright.
 
 ## Known limitations
 
-- **Read-only**: there are no write endpoints yet beyond auth. Actions like
-  "resolve alert", "flag for retraining" or "generate export" update local
-  state and show a toast; nothing persists server-side.
-- **Policy, Audit and AI Governance are still mock-backed**, and the
-  Dashboard's frameworks strip, department chart and activity feed are too.
-  The activity feed cycles a fixed sample array on a timer.
-- **The Dashboard health-period chips (7d/30d/90d) are inert** — see the
-  TODO in `src/pages/Dashboard.tsx`; the underlying score is a
-  point-in-time value with no time-range query behind it.
-- **Lint carries a backlog** of ~15 errors, mostly `@typescript-eslint/no-explicit-any`
-  in the mock-backed pages. CI reports them but does not gate on them.
-- **A reload signs you out**, by design — see [Signing in](#signing-in).
-- **Main bundle is still ~344 KB gzip 108 KB** even after route-level
-  code splitting, mostly React/Router/Query/shadcn. Recharts (the
-  largest single dependency, ~365 KB) is already isolated into its own
-  chunk that only loads on chart-heavy pages. Further reduction would
-  mean swapping dependencies, which was out of scope here.
+- **Notifications have no backend.** The bell opens a panel that says so
+  rather than showing an invented feed; the event-stream contract is in
+  `FRONTEND_API_CONTRACT.md`.
+- **Demo accounts are named by the backend seed.** The sign-in addresses in
+  `USER_WORKFLOW.md` are whatever the backend seeds; rename them there.
+- **Lint carries ~15 warnings**, all `react-refresh/only-export-components`
+  in files that export constants beside components. No errors.

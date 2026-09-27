@@ -3,7 +3,7 @@
 **Duration:** 10–15 minutes
 **Audience:** healthcare security, privacy and compliance leaders
 **Environment:** the seeded Drishti demo organisation, *Drishti Demo Healthcare*
-**Account:** `admin@drishti-demo.invalid` (see `DRISHTI_DEMO_OPERATIONS.md`)
+**Account:** `admin@drishti.ai` (see `DRISHTI_DEMO_OPERATIONS.md`)
 
 Everything in this script is on screen in the demo environment. No feature is
 described that does not exist, and every figure quoted below comes from the

@@ -56,7 +56,7 @@ Query parameters:
       {
         "id": 8412,
         "occurredAt": "2026-09-22T09:31:44.000Z",
-        "actor": { "id": 3, "email": "admin@meridian.org", "role": "ADMIN" },
+        "actor": { "id": 3, "email": "admin@drishti.ai", "role": "ADMIN" },
         "action": "ASSET_UPDATED",
         "resourceType": "ASSET",
         "resourceId": 6,
@@ -140,7 +140,7 @@ specifies a full remediation object; none of it exists server-side.
         "reason": "87,100 records/day traverse this path without encryption.",
         "currentState": "Unencrypted",
         "recommendedAction": "Enable TLS 1.3 on the billing replication channel.",
-        "owner": { "id": 5, "email": "m.thompson@meridian.org" },
+        "owner": { "id": 5, "email": "analyst@drishti.ai" },
         "status": "OPEN",
         "createdAt": "2026-09-01T10:00:00.000Z",
         "dueDate": "2026-10-01T00:00:00.000Z",

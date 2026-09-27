@@ -1,8 +1,8 @@
 # Drishti — 3D icon prompts
 
 Copy-paste these into Flow, Midjourney, Ideogram, or any image model. Every
-prompt is built for **Drishti** — the dark PHI risk-intelligence console for
-Meridian Health — not generic healthcare clipart.
+prompt is built for **Drishti** — Wayam AI's PHI risk-intelligence console —
+not generic healthcare clipart.
 
 **Product:** Drishti — Healthcare PHI Risk Intelligence Platform
 **दृष्टि** = vision / sight / insight. The product's job is *visibility*: where

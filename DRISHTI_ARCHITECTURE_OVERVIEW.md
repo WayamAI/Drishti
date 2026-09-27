@@ -201,8 +201,8 @@ no business in a log.
 ## Demo environment
 
 The demo organisation is a **separate tenant** in the same database —
-*Drishti Demo Healthcare*, with its own admin, analyst and viewer accounts on
-a non-routable `.invalid` domain. It is isolated from every other
+*Drishti Demo Healthcare*, with its own admin, analyst and viewer accounts
+(`admin@drishti.ai`, `analyst@drishti.ai`, `viewer@drishti.ai`). It is isolated from every other
 organisation by the same boundary that separates customers.
 
 Two commands manage it:

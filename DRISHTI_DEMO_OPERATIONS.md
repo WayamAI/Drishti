@@ -82,9 +82,9 @@ Open **http://localhost:8080**
 
 | Account | Role | Use |
 |---|---|---|
-| `admin@drishti-demo.invalid` | Admin | **Run the demo with this one** |
-| `analyst@drishti-demo.invalid` | Analyst | To show the role boundary |
-| `viewer@drishti-demo.invalid` | Viewer | To show read-only access |
+| `admin@drishti.ai` | Admin | **Run the demo with this one** |
+| `analyst@drishti.ai` | Analyst | To show the role boundary |
+| `viewer@drishti.ai` | Viewer | To show read-only access |
 
 The password is `DEMO_USER_PASSWORD` from the backend `.env`. **Do not put it
 on a slide, in a shared document, or on screen.** Type it before screen
@@ -195,6 +195,7 @@ npm run db:demo:reset     # leave it clean for the next person
 
 Stop the servers if the machine is shared. Nothing else is required — the
 demo holds no customer data and no real PHI. Every name, system and record in
-the demo organisation is fictional, and the demo accounts use the
-non-routable `.invalid` domain deliberately, so no address in the dataset can
-receive mail.
+the demo organisation is fictional, and the fictional people in the
+dataset have non-routable addresses. The three login accounts use the
+`drishti.ai` domain so they read naturally on screen; mail to them reaches
+whoever holds that domain, never a stranger.
