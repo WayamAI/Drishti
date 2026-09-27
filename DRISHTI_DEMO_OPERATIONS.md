@@ -111,7 +111,7 @@ Run it again and reload.
 **Also check quickly:**
 
 - The browser console is clean (no red).
-- **Assets** shows `1–12 of 12`, with `Legacy Records Exchange` at the top,
+- **Assets** shows `1 to 12 of 12`, with `Legacy Records Exchange` at the top,
   score `100`, band `EXTREME`.
 - **PHI Flow** draws the map — the thick red ribbon from the legacy exchange
   to the analytics warehouse is the one the script points at.
@@ -120,7 +120,7 @@ Run it again and reload.
 
 ## 7 — Run the demo
 
-Follow `DRISHTI_CUSTOMER_DEMO_SCRIPT.md`. Twelve steps, 10–15 minutes.
+Follow `DRISHTI_CUSTOMER_DEMO_SCRIPT.md`. Twelve steps, 10 to 15 minutes.
 
 **Before you share your screen:**
 

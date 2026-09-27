@@ -4,11 +4,11 @@
  * This sits *beside* the line-art system in `src/lib/icons.ts`, it does not
  * replace it. The split is a size and colour constraint, not a preference:
  *
- *   - Lucide and `DomainIcon` render at 12–28px, inherit `currentColor`, and
+ *   - Lucide and `DomainIcon` render at 12 to 28px, inherit `currentColor`, and
  *     cost ~400 bytes. They own every table cell, badge, button, sidebar row
  *     and inline affordance. That is the overwhelming majority of the app.
  *   - These are raster renders. They cannot recolour, they are mud below
- *     ~40px, and they cost 5–30 KB each. They earn their place only where the
+ *     ~40px, and they cost 5 to 30 KB each. They earn their place only where the
  *     surface is large enough to show them: page headers, empty states, the
  *     dashboard's lead metrics, login, and 404.
  *

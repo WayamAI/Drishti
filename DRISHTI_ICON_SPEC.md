@@ -74,7 +74,7 @@ that size. Test every icon at 16 px before accepting it.
 
 ### Density
 
-- **3–6 drawn elements** per icon. Under three reads as unfinished; over six
+- **3 to 6 drawn elements** per icon. Under three reads as unfinished; over six
   turns to mush at 16 px.
 - No detail smaller than **2 px**.
 - No text, no numerals, no letterforms.
@@ -186,7 +186,7 @@ Asset → PHI → Identity / Access → Vendor → Control → Risk
         Data Flow ─ Remediation ─ Audit
 ```
 
-Each appears at **16 px** (table rows, search results), **18–20 px** (page
+Each appears at **16 px** (table rows, search results), **18 to 20 px** (page
 headers, drawers), and **22 px** (entity avatars in tinted wells).
 
 ---
@@ -420,7 +420,7 @@ this one unmistakably a **log**: ruled lines of differing length, suggesting
 entries. The folded corner is a nice touch — keep it, it adds identity.
 
 - **Must** read as *a written record of events*
-- **Must** have 2–3 ruled lines of **differing** lengths
+- **Must** have 2 to 3 ruled lines of **differing** lengths
 - **Must not** carry a medical cross
 - **Must not** be confusable with `phi` — different interior entirely
 - **Keyline:** portrait rect 16 × 20
@@ -499,7 +499,7 @@ Run every generated icon through this. An icon failing any line is not done.
 - [ ] `fill="none"`, single `currentColor`, no baked colour
 - [ ] No stroke pair closer than 2 px
 - [ ] Legible and unambiguous at **16 px**
-- [ ] 3–6 elements, nothing finer than 2 px
+- [ ] 3 to 6 elements, nothing finer than 2 px
 - [ ] Only 0/45/90° angles
 - [ ] No text, no gradient, no shadow, no fill, no 3D
 - [ ] Clean SVG: no `<style>`, ids, classes, clipPaths, masks or transforms
@@ -521,7 +521,7 @@ Run every generated icon through this. An icon failing any line is not done.
 
 ## 8. Prompt template
 
-Paste this as the system/style preamble, then append one icon brief from §4–5.
+Paste this as the system/style preamble, then append one icon brief from §4 or §5.
 
 ```
 Design a single flat line-art icon for Drishti, an enterprise healthcare

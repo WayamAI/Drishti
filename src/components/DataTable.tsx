@@ -440,7 +440,7 @@ function DataTableInner<T>({
           <div className="flex flex-wrap items-center justify-between gap-2 text-caption text-tertiary">
             {server ? (
               /*
-               * States the whole dataset, not the page. "1–25 of 512" is the
+               * States the whole dataset, not the page. "1 to 25 of 512" is the
                * difference between an honest table and one that implies 25
                * is all there is.
                */
@@ -448,7 +448,7 @@ function DataTableInner<T>({
                 {server.meta
                   ? server.meta.total === 0
                     ? "No rows"
-                    : `${(server.meta.page - 1) * server.meta.pageSize + 1}–` +
+                    : `${(server.meta.page - 1) * server.meta.pageSize + 1} to ` +
                       `${Math.min(server.meta.page * server.meta.pageSize, server.meta.total)}` +
                       ` of ${server.meta.total.toLocaleString(LOCALE)}`
                   : "…"}

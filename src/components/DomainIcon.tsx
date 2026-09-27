@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
  *           Data Flow ─ Remediation ─ Audit ─ Dashboard ─ Import
  *
  * Traced from the commissioned artwork in `design/icons-source/`, which
- * arrived as 2K JPEGs. Raster could not ship: icons render at 16–24px and
+ * arrived as 2K JPEGs. Raster could not ship: icons render at 16 to 24px and
  * must inherit `currentColor` so the same mark reads as tertiary grey in a
  * table, brand orange in a page header, and semantic red inside a critical
  * badge. A JPEG is one fixed colour on an opaque background, and ~500 KB
@@ -170,7 +170,7 @@ const PATHS: Record<DomainIconName, JSX.Element> = {
 
 export type DomainIconProps = {
   name: DomainIconName;
-  /** Pixel size; 16–24 are the tested sizes. */
+  /** Pixel size; 16 to 24 are the tested sizes. */
   size?: number;
   className?: string;
   /** Omit for decorative use — the default, since these sit beside a label. */

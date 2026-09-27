@@ -22,7 +22,7 @@ This repo has already tried raster icons once and reversed the decision. The
 reasons are recorded in `src/components/DomainIcon.tsx`:
 
 > Traced from the commissioned artwork in `design/icons-source/`, which arrived
-> as 2K JPEGs. Raster could not ship: icons render at 16–24px and must inherit
+> as 2K JPEGs. Raster could not ship: icons render at 16 to 24px and must inherit
 > `currentColor` so the same mark reads as tertiary grey in a table, brand
 > orange in a page header, and semantic red inside a critical badge. A JPEG is
 > one fixed colour on an opaque background, and ~500 KB against roughly 400
@@ -32,27 +32,27 @@ Nothing in this brief overturns that. Three constraints still hold:
 
 | Constraint | Why it binds |
 |---|---|
-| **Size** | `AppIcon` renders at 12–28px (`SIZE_PX` in `src/components/AppIcon.tsx`). A 3D render is mud below ~40px. |
+| **Size** | `AppIcon` renders at 12 to 28px (`SIZE_PX` in `src/components/AppIcon.tsx`). A 3D render is mud below ~40px. |
 | **Colour inheritance** | `src/lib/icons.ts` rule 1: line art, `currentColor`, one colour per icon. A baked-orange PNG cannot turn red inside a critical badge. |
-| **Weight** | ~400 bytes of SVG path vs ~200–500 KB per PNG. A hundred of those is a different product. |
+| **Weight** | ~400 bytes of SVG path vs ~200 to 500 KB per PNG. A hundred of those is a different product. |
 
 So the split is:
 
 - **The line-art system stays.** `AppIcon` (Lucide) and `DomainIcon` (the twelve
   traced marks) keep every inline, table, badge, button, and sidebar slot.
 - **3D marks are for large surfaces only** — the places currently showing a
-  lonely 20–24px glyph in a lot of empty space.
+  lonely 20 to 24px glyph in a lot of empty space.
 
 ### Surfaces that can take a 3D mark
 
 | Surface | Component | Renders today | Needs | Verdict |
 |---|---|---|---|---|
-| Empty state | `EmptyState`, `src/components/ui-bits.tsx:359` | `size="2xl"` = 24px | **96–120px** | **Best target.** Biggest canvas, lowest risk. |
+| Empty state | `EmptyState`, `src/components/ui-bits.tsx:359` | `size="2xl"` = 24px | **96 to 120px** | **Best target.** Biggest canvas, lowest risk. |
 | Login backdrop | `src/pages/Login.tsx` | nothing — flat `bg-background` | full-bleed | **Best target.** Pure decoration, no semantics. |
 | 404 | `src/pages/NotFound.tsx` | nothing | 120px | Good target. |
 | Page header | `PageHeader`, `src/components/ui-patterns.tsx:144` | `DomainIcon size={20}` | 40px+ | Only if the header grows. Judge it against the `font-display` title first. |
-| KPI tile | `MetricCard`, `src/components/ui-patterns.tsx:174` | `icon` at small size | 40–56px | Optional. Four tiles × 3D art can read as noisy. |
-| Table cell / badge / sidebar / button | `DataTable`, `Badge`, `SidebarItem`, `Btn` | 12–18px | — | **Never.** Line art only. |
+| KPI tile | `MetricCard`, `src/components/ui-patterns.tsx:174` | `icon` at small size | 40 to 56px | Optional. Four tiles × 3D art can read as noisy. |
+| Table cell / badge / sidebar / button | `DataTable`, `Badge`, `SidebarItem`, `Btn` | 12 to 18px | — | **Never.** Line art only. |
 
 **Prerequisite:** generating art does not change the UI. `EmptyState` hardcodes
 `size="2xl"` and `PageHeader` hardcodes `size={20}`; both need an opt-in prop
@@ -119,7 +119,7 @@ Then append one subject line. One subject per image — never collage.
 
 ---
 
-## 4. Set A — the twelve domain marks (`01`–`12`)
+## 4. Set A — the twelve domain marks (`01` to `12`)
 
 These are the nouns of the risk model and the highest-value renders in the set.
 They mirror `DomainIconName` in `src/components/DomainIcon.tsx` one-for-one, so
@@ -142,7 +142,7 @@ lifted from it and are not negotiable.
 
 ---
 
-## 5. Set B — empty states (`13`–`21`)
+## 5. Set B — empty states (`13` to `21`)
 
 The single best surface for this art: a dashed container, 96px+ of clear space,
 and a glyph currently doing very little. Each one is the Set A object **in its
@@ -162,7 +162,7 @@ Mapped from the `emptyIcon` prop at each call site:
 
 ---
 
-## 6. Set C — dashboard KPI tiles (`22`–`25`)
+## 6. Set C — dashboard KPI tiles (`22` to `25`)
 
 The four headline metrics on `/` (`src/pages/Dashboard.tsx`). Optional — four 3D
 objects in a row can read busy. Generate them, then judge the row as a whole.
@@ -174,7 +174,7 @@ objects in a row can read busy. Generate them, then judge the row as a whole.
 
 ---
 
-## 7. Set D — risk bands (`26`–`30`)
+## 7. Set D — risk bands (`26` to `30`)
 
 The only prompts permitted to leave the orange lock, because the band **is** the
 colour. Sourced from `--sem-severity-*`; use the dark-theme values, they survive
@@ -192,7 +192,7 @@ side by side as one scale, rerun the set, not the outlier.
 
 ---
 
-## 8. Set E — state, feedback, and platform nouns (`31`–`44`)
+## 8. Set E — state, feedback, and platform nouns (`31` to `44`)
 
 Second priority. Generate after Sets A and B are accepted.
 
@@ -219,7 +219,7 @@ never for inline badges:
 
 ---
 
-## 9. Set F — hero surfaces (`45`–`48`)
+## 9. Set F — hero surfaces (`45` to `48`)
 
 ### 45. Login backdrop
 
@@ -254,7 +254,7 @@ wordmark, no lockup. For the command palette and loading splash.
 
 ## 10. Do NOT render in 3D
 
-These are interface verbs. They live at 12–18px, they change colour with state,
+These are interface verbs. They live at 12 to 18px, they change colour with state,
 and a 3D version of any of them is a bug, not an upgrade. Per usage count in
 `src`, these are also the most-rendered icons in the app:
 
@@ -342,7 +342,7 @@ small size and take an `IconName`, not an image.
 
 **`EmptyState`** (`src/components/ui-bits.tsx:359`) renders
 `<AppIcon name={icon} size="2xl" />` — a fixed 24px. Add an optional `art` prop
-that, when present, renders a 96–120px `<img>` and falls back to the existing
+that, when present, renders a 96 to 120px `<img>` and falls back to the existing
 `AppIcon` when absent. Fallback is required: the art is decorative, and a missing
 file must degrade to today's glyph rather than a broken image.
 

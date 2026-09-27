@@ -156,11 +156,11 @@ describe("Access page", () => {
 
   it("states the whole dataset size in the table footer", async () => {
     render(wrap(<Access />));
-    // "1–3 of 9", never a bare "3 rows" that implies 3 is all there is.
+    // "1 to 3 of 9", never a bare "3 rows" that implies 3 is all there is.
     // Built from several expressions in one span, so match on textContent.
     await waitFor(() => {
       const live = document.querySelector("[aria-live=polite]");
-      expect(live?.textContent?.replace(/\s+/g, " ")).toContain("1–3 of 9");
+      expect(live?.textContent?.replace(/\s+/g, " ")).toContain("1 to 3 of 9");
     });
   });
 

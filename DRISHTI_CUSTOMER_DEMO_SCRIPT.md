@@ -1,6 +1,6 @@
 # Drishti — Customer Demo Script
 
-**Duration:** 10–15 minutes
+**Duration:** 10 to 15 minutes
 **Audience:** healthcare security, privacy and compliance leaders
 **Environment:** the seeded Drishti demo organisation, *Drishti Demo Healthcare*
 **Account:** `admin@drishti.ai` (see `DRISHTI_DEMO_OPERATIONS.md`)
