@@ -16,6 +16,7 @@ import type { ApiThreat, ThreatSeverity, ThreatStatus } from "@/lib/apiTypes";
 import type { Tone } from "@/lib/tone";
 import { LOCALE, DATETIME_OPTIONS } from "@/lib/format";
 import { remediationLink } from "@/lib/remediationLink";
+import { hoursAgoLabel } from "@/lib/dates";
 
 /**
  * Threat detection, with a real lifecycle.
@@ -57,10 +58,7 @@ const STATUSES: ThreatStatus[] = ["OPEN", "INVESTIGATING", "RESOLVED", "FALSE_PO
  * 48 rather than 24: during an incident "43h ago" is a more useful thing to
  * read than "2d ago", and the extra day of precision costs nothing.
  */
-const age = (hours: number) =>
-  hours < 1 ? "just now"
-    : hours < 48 ? `${Math.round(hours)}h ago`
-    : `${Math.round(hours / 24)}d ago`;
+const age = hoursAgoLabel;
 
 export default function Threats() {
   const summary = useThreatSummary();

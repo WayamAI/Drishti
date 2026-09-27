@@ -21,3 +21,16 @@ export const daysAgoLabel = (days: number): string => {
   const phrase = daysAgo(days);
   return phrase.charAt(0).toUpperCase() + phrase.slice(1);
 };
+
+/**
+ * Compact age for events: "just now", "5h ago", "3d ago". The wording the
+ * threat list already used, shared so every feed ages events the same way.
+ */
+export const hoursAgoLabel = (hours: number): string =>
+  hours < 1 ? "just now"
+    : hours < 48 ? `${Math.round(hours)}h ago`
+    : `${Math.round(hours / 24)}d ago`;
+
+/** The same, from an ISO timestamp. */
+export const timeAgo = (iso: string, now: number = Date.now()): string =>
+  hoursAgoLabel(Math.max(0, now - Date.parse(iso)) / 3_600_000);

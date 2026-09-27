@@ -3,12 +3,14 @@ import { Card, Badge, Btn, SlideOver } from "@/components/ui-bits";
 import { AppIcon } from "@/components/AppIcon";
 import { DataTable, listAsQuery, type Column } from "@/components/DataTable";
 import { PageHeader, Field, FieldGroup, FilterBar, EntityAvatar } from "@/components/ui-patterns";
-import type { DomainIconName } from "@/components/DomainIcon";
 import { useAudit } from "@/hooks/useGovernance";
 import { useListControls } from "@/hooks/useListControls";
 import type { ApiAuditEntry } from "@/lib/apiTypes";
-import type { Tone } from "@/lib/tone";
 import { LOCALE, DATETIME_OPTIONS } from "@/lib/format";
+import {
+  AUDIT_ACTION_GROUPS as ACTION_GROUPS, auditIconFor as iconFor, auditResultTone as resultTone,
+  humaniseAction as humanise, describeAuditSubject,
+} from "@/lib/audit";
 
 /**
  * Audit trail — who did what, to what, when, and with what result.
@@ -21,50 +23,6 @@ import { LOCALE, DATETIME_OPTIONS } from "@/lib/format";
  * Every mutation elsewhere in the app invalidates this query, so an action
  * taken in another tab shows up here without a manual refresh.
  */
-
-/** Result → tone. Anything that is not an outright success is worth a colour. */
-const resultTone = (result: string): Tone =>
-  result === "SUCCESS" ? "success"
-    : result === "FAILURE" || result === "DENIED" ? "danger"
-    : "warning";
-
-/**
- * Group the 43 action types into something a human can filter by.
- * Unknown actions fall through to "Other" rather than being hidden — a new
- * backend action must never become invisible here.
- */
-const ACTION_GROUPS: Array<{
-  value: string; label: string; icon: DomainIconName; match: (a: string) => boolean;
-}> = [
-  { value: "all", label: "All activity", icon: "audit", match: () => true },
-  { value: "auth", label: "Authentication", icon: "identity",
-    match: a => a.startsWith("LOGIN") || a.startsWith("LOGOUT") || a.includes("SESSION") || a.includes("TOKEN") },
-  { value: "asset", label: "Assets", icon: "asset", match: a => a.startsWith("ASSET") },
-  { value: "risk", label: "Risk", icon: "risk", match: a => a.startsWith("RISK") },
-  { value: "vendor", label: "Vendors", icon: "vendor", match: a => a.startsWith("VENDOR") },
-  { value: "access", label: "Access", icon: "identity",
-    match: a => a.startsWith("ACCESS") || a.startsWith("IDENTITY") },
-  { value: "threat", label: "Threats", icon: "threat", match: a => a.startsWith("THREAT") },
-  { value: "remediation", label: "Remediation", icon: "remediation", match: a => a.startsWith("REMEDIATION") },
-  { value: "control", label: "Controls", icon: "control", match: a => a.startsWith("CONTROL") || a.startsWith("POLICY") },
-  { value: "import", label: "Imports", icon: "import", match: a => a.startsWith("IMPORT") },
-];
-
-/**
- * The mark for an action, by family.
- *
- * Every row previously carried the same document glyph, which made a
- * fifty-row trail one undifferentiated column — the eye had to read each
- * label to find "the risk one". Keying the icon to the family makes the
- * trail scannable, and falls back to the audit mark for any action the
- * backend adds that this list has not met yet.
- */
-const iconFor = (action: string): DomainIconName =>
-  ACTION_GROUPS.find(g => g.value !== "all" && g.match(action))?.icon ?? "audit";
-
-/** ASSET_UPDATED → "Asset updated". */
-const humanise = (action: string) =>
-  action.charAt(0) + action.slice(1).toLowerCase().replace(/_/g, " ");
 
 const fmtWhen = (iso: string) => new Date(iso).toLocaleString(LOCALE, DATETIME_OPTIONS);
 
@@ -119,10 +77,13 @@ export default function AuditPage() {
       id: "entity",
       header: "Subject",
       hideBelow: "md",
-      sortValue: e => e.entityType ?? null,
-      cell: e => e.entityType
-        ? <span className="text-body-sm text-secondary">{e.entityType} #{e.entityId}</span>
-        : <span className="text-tertiary">—</span>,
+      sortValue: e => describeAuditSubject(e),
+      cell: e => {
+        const subject = describeAuditSubject(e);
+        return subject
+          ? <span className="truncate text-body-sm text-secondary" title={e.entityType ? `${e.entityType} #${e.entityId}` : undefined}>{subject}</span>
+          : <span className="text-tertiary">—</span>;
+      },
     },
     {
       id: "result",
