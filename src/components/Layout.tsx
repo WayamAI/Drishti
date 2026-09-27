@@ -527,7 +527,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/*
         Notifications have no backend. Rather than a fabricated feed with an
         invented unread count, this says so. The contract for a real event
-        stream is in FRONTEND_API_CONTRACT.md.
+        stream is in docs/api-contract.md.
       */}
       <SlideOver open={notifOpen} onClose={() => setNotifOpen(false)} width={380} title="Notifications">
         <EmptyState

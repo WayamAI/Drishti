@@ -28,7 +28,7 @@ shows invented figures.
 
 **Signing in.** Open the app, enter your **Email address** and **Password**,
 and choose **Sign in**. The eye icon reveals the password. Demo accounts for
-each role come from the backend seed — see `DRISHTI_DEMO_OPERATIONS.md`.
+each role come from the backend seed — see `docs/demo/demo-operations.md`.
 
 A reload keeps you signed in. If the session genuinely ends you return to
 sign-in with **"Your session ended. Please sign in again to continue."**

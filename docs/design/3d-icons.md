@@ -1,8 +1,8 @@
 # Drishti — 3D icon list for Google Flow (cards, badges, states)
 
-The follow-on to `DRISHTI_3D_ICON_PROMPTS.md`. That brief produced the first
-46 marks; this list covers what the cards, tiles and status surfaces still
-need. Every prompt below is **complete and paste-ready** — the style prefix is
+The first 46 marks came from an earlier generation brief (in git history as
+`DRISHTI_3D_ICON_PROMPTS.md`); this list covers what the cards, tiles and
+status surfaces still need. Every prompt below is **complete and paste-ready** — the style prefix is
 already built in, so each one produces a mark that sits beside the existing
 set without looking like it came from a different studio.
 

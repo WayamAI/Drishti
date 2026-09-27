@@ -33,12 +33,10 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit -p tsconfig.app.json
 
-      # Not gating on lint yet: the repo carries a known backlog of
-      # no-explicit-any errors that predate this pipeline. Reported, not fatal,
-      # so the signal is visible without blocking every push.
+      # Gating: the lint backlog is cleared (0 errors, 0 warnings), so a new
+      # problem fails the build instead of accumulating.
       - name: Lint
         run: npm run lint
-        continue-on-error: true
 
       # live-backend.test.tsx needs a running API and is excluded here; it
       # skips itself when the backend is unreachable, but excluding it keeps

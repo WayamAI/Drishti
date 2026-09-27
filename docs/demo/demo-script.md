@@ -3,7 +3,7 @@
 **Duration:** 10 to 15 minutes
 **Audience:** healthcare security, privacy and compliance leaders
 **Environment:** the seeded Drishti demo organisation, *Drishti Demo Healthcare*
-**Account:** `admin@drishti.ai` (see `DRISHTI_DEMO_OPERATIONS.md`)
+**Account:** `admin@drishti.ai` (see `demo-operations.md`)
 
 Everything in this script is on screen in the demo environment. No feature is
 described that does not exist, and every figure quoted below comes from the
@@ -255,5 +255,5 @@ nothing is written until the preview is confirmed. Show it if there is time.
   certification or attestation. They are citations the customer recorded.
 - Do not promise automated remediation. Drishti records that work happened;
   it does not perform it.
-- Do not describe roadmap items as present. `DRISHTI_FEATURE_MATRIX.md` is the
+- Do not describe roadmap items as present. `../customer/feature-matrix.md` is the
   authority on what exists today.

@@ -28,7 +28,7 @@ import { LOCALE, DATE_OPTIONS } from "@/lib/format";
  * status have no source on the wire yet, so those columns are not rendered —
  * an empty column reads as missing data, which in a compliance tool is worse
  * than an absent one. The remediation workflow that would fill them is
- * specified in FRONTEND_API_CONTRACT.md.
+ * specified in docs/api-contract.md.
  *
  * Recompute is real: POST /api/risks/:assetId/recompute re-runs the engine
  * server-side and this page renders whatever comes back. The score is never

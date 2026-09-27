@@ -1,92 +1,190 @@
-# Drishti — by Wayam AI
+<div align="center">
 
-A healthcare PHI governance console: where patient data lives, how it moves
-between systems, who can reach it, which vendors touch it, what is being
-detected against it, and what has to be fixed first — in one place.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/drishti-dark.svg">
+  <img src="docs/brand/drishti-light.svg" alt="Drishti" width="300">
+</picture>
 
-This is the frontend. Every screen reads the Drishti backend API over HTTP;
-nothing is driven by fixture data. See [Data sources](#data-sources).
+### Healthcare PHI risk intelligence, in one console
 
-## Stack
+See where patient data lives, how it moves, who can reach it, which vendors touch it,
+and what to fix first — then track the fix to done.
 
-- [Vite](https://vitejs.dev/) + [React 18](https://react.dev/) + TypeScript
-- [Tailwind CSS](https://tailwindcss.com/) on the Chronos design tokens (see [Design system](#design-system))
-- [React Router](https://reactrouter.com/) for routing and route protection
-- [TanStack Query](https://tanstack.com/query) for all backend reads, behind the shared `useApiQuery` hook
-- [Sonner](https://sonner.emilkowal.ski/) for toasts, [Lucide](https://lucide.dev/) for interface icons
-- [Vitest](https://vitest.dev/) + Testing Library for tests
+![React 18](https://img.shields.io/badge/React-18-20232a?logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-06B6D4?logo=tailwindcss&logoColor=white)
 
-## Running locally
+<br>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dashboard-dark.png">
+  <img src="docs/screenshots/dashboard.png" alt="The Drishti dashboard: KPI tiles, the Action Centre, exposure and risk distribution" width="100%">
+</picture>
+
+</div>
+
+---
+
+## Why Drishti
+
+*दृष्टि — vision, sight.*
+
+Most healthcare organisations can list the systems they run. Very few can say,
+on demand, **where PHI actually sits, how it moves between those systems, who
+still has access to it, and which vendors are exposed**. That picture is
+usually spread across spreadsheets, ticket queues and vendor folders, and it
+is rebuilt by hand every time an auditor or an incident asks.
+
+Drishti keeps that picture live, puts the worst problems first, and carries
+each one from *found* to *recorded* to *fixed* without retyping anything:
+
+```
+ Find                      Record                       Act
+ ─────────────────────     ────────────────────────     ──────────────────────────
+ Dashboard · Action        Inspector with only the      Raise remediation, pre-filled
+ Centre · PHI flow map ─▶  facts the API returns    ─▶  and linked to the asset, threat,
+ Risk matrix · Threats                                  grant or vendor it came from
+```
+
+Every screen reads the Drishti API. Nothing is driven by fixture data, and a
+screen that has no data says so rather than inventing some.
+
+---
+
+## A tour
+
+### PHI flow map
+
+Every recorded movement of PHI between systems, as a volume-weighted Sankey.
+A bar's height is a system's daily throughput; a ribbon is exactly as thick as
+the records it carries; red means the flow is unencrypted. Hover a system or a
+flow to isolate it.
+
+![PHI flow map](docs/screenshots/phi-flow.png)
+
+Click a flow to inspect it: route, PHI category, sensitivity, volume and
+encryption, with **Raise remediation** pre-filled as a transit-control finding.
+
+![Flow inspector with Raise remediation](docs/screenshots/flow-inspector.png)
+
+### Risk register
+
+Every system scored on likelihood × impact × exposure × control gap. The
+matrix shows where risk concentrates; select a square to list its systems,
+then a system to open its record.
+
+![Risk register and matrix](docs/screenshots/risk-register.png)
+
+### Threats
+
+Detected threats against the systems they affect. The inspector offers only
+the status changes the platform will accept from the current state, and hands
+off to Remediation in one click.
+
+![Threat inspector](docs/screenshots/threat-inspector.png)
+
+### Access & identity
+
+Every grant to a PHI system, ordered by how much is wrong with it: stale,
+never used, missing MFA, excessive, or held by a deactivated identity.
+
+![Access and identity review](docs/screenshots/access.png)
+
+### Vendors
+
+Third parties that touch PHI, with BAA status, assessment currency and a
+score from the same engine as asset risk.
+
+![Vendor risk](docs/screenshots/vendors.png)
+
+### Remediation
+
+The findings register: owner, due date, severity and a lifecycle that keeps
+*Resolved* and *Risk accepted* distinct in every count.
+
+![Remediation register](docs/screenshots/remediation.png)
+
+<details>
+<summary><b>Also in the box</b></summary>
+
+<br>
+
+- **Assets** — every system holding PHI, with a seven-tab detail drawer.
+- **Controls** and **Policies** — safeguards, how well they work, and the policy that requires them.
+- **Audit Trail** (admin) — who did what, when, filterable by action.
+- **Data Import** (admin) — CSV import with a validated preview before anything is written.
+- **Identities & Members** — who can reach PHI, and who can sign in to Drishti.
+- **Global search** — <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd> from anywhere.
+- **Light and dark** — a toggle, remembered per browser.
+- **Deep links** — every list seeds its filters from the URL, so `/threats?severity=CRITICAL` or `/access?flaggedOnly=true` land on exactly those records.
+
+<br>
+
+![Sign in](docs/screenshots/login.jpg)
+
+</details>
+
+---
+
+## Quick start
+
+**Prerequisites:** Node.js 20+ and a running Drishti API
+([WayamAI/MedGuard_Shield_Backend](https://github.com/WayamAI/MedGuard_Shield_Backend), port 4000 by default).
 
 ```bash
 npm install
-cp .env.example .env.local   # then point VITE_API_BASE_URL at the backend
-npm run dev
+cp .env.example .env.local        # set VITE_API_BASE_URL, e.g. http://localhost:4000
+npm run dev                       # http://localhost:8080
 ```
 
-`VITE_API_BASE_URL` **is required**. There is no mock fallback on the
-API-backed pages: with it unset, `getApiBaseUrl()` in
-`src/lib/apiClient.ts` throws and those pages render their error state.
-The backend listens on **port 4000**, which is what `.env.example` ships.
+`VITE_API_BASE_URL` is **required** — there is no mock fallback, and without
+it every data screen shows its error state. Demo accounts come from the
+backend seed; see the [user guide](docs/user-guide.md).
 
-The dev server is pinned to port 8080 in `vite.config.ts`, and Vite falls
-back to the next free port if 8080 is already taken — check the URL it
-prints.
+| Script | What it does |
+|---|---|
+| `npm run dev` | Dev server on port 8080 (falls back to the next free port) |
+| `npm run build` | Production build into `dist/` |
+| `npm run preview` | Serve the production build locally |
+| `npm run lint` | ESLint — CI requires zero problems |
+| `npm test` | Vitest, once |
+| `npm run test:watch` | Vitest in watch mode |
 
-> **Note:** use `npm`. The repo carries only `package-lock.json`; bun is not
-> supported (it also fails on checkout paths containing a space).
+> Use **npm**. The repo carries only `package-lock.json`.
 
-Other scripts: `npm run build`, `npm run lint`, `npm run test`, `npm run preview`.
+---
 
-## Deploying
+## How it's built
 
-Hosted on **Vercel** (static build) against the API on **Render** and Postgres
-on **Supabase** — all three on free tiers. `vercel.json` holds the whole
-frontend side of that; the backend's `DEPLOYMENT.md` holds the rest.
+| Layer | Choice |
+|---|---|
+| App | [Vite](https://vitejs.dev/) · [React 18](https://react.dev/) · TypeScript |
+| Styling | [Tailwind CSS](https://tailwindcss.com/) on the Chronos design tokens |
+| Data | [TanStack Query](https://tanstack.com/query) behind one shared `useApiQuery` hook |
+| Routing | [React Router 6](https://reactrouter.com/), with role-gated routes |
+| UI | [Lucide](https://lucide.dev/) interface icons, [Sonner](https://sonner.emilkowal.ski/) toasts, hand-built SVG charts |
+| Tests | [Vitest](https://vitest.dev/) + Testing Library |
 
-`VITE_API_BASE_URL` is a **build-time** variable. Vite inlines
-`import.meta.env` into the bundle, so it must be set as a Vercel *project
-environment variable* (Production and Preview both) and a change to it needs a
-redeploy — setting it at runtime does nothing. This is a property of Vite, not
-a choice made here.
+**Data.** Every read goes through `useApiQuery` (`src/hooks/useApiQuery.ts`),
+which adds polling, a faster retry cadence while the API is down, and an
+`isReconnecting` state so a screen keeps its last good data behind a notice
+instead of blanking out.
 
-```bash
-vercel link
-vercel env add VITE_API_BASE_URL production   # https://<service>.onrender.com
-vercel env add VITE_API_BASE_URL preview
-vercel --prod
-```
+**Sign-in.** The access token (JWT, one hour) lives in memory only — never in
+`localStorage`. The refresh token is an httpOnly cookie script cannot read; on
+load the app calls `/api/auth/refresh` so a reload keeps you signed in.
+Signing out clears the token locally first, so it works even if the API is
+unreachable.
 
-Three things `vercel.json` is doing that are easy to undo by accident:
+**Roles.** Administrator, Analyst and Viewer. Screens a role cannot use are
+left out of the menu rather than shown and refused; action buttons follow the
+same rule.
 
-- **`installCommand` is pinned to `npm ci`**, so the install always uses
-  `package-lock.json` exactly.
-- **The catch-all rewrite to `/index.html`** is the SPA fallback, replacing
-  what `nginx.conf` does in the Docker image. It is safe for assets because
-  Vercel matches the filesystem *before* applying rewrites.
-- **The cache header targets `/static/`, not `/assets/`.** `vite.config.ts`
-  sets `assetsDir: "static"` deliberately, because the app has a route at
-  `/assets` that Vite's default output directory would shadow. Don't "fix"
-  either one.
+<details>
+<summary><b>Endpoints each screen reads</b></summary>
 
-The security headers (`nosniff`, `DENY`, `strict-origin-when-cross-origin`) are
-ported from `nginx.conf` so the Vercel deploy and the container image behave
-the same way.
-
-**CORS:** the API allowlists exact origins from `FRONTEND_ORIGIN` and never a
-wildcard, so the Render service needs the Vercel production origin set on it
-(scheme + host, no trailing slash) before login will work. Preview deployments
-get a hashed hostname and will *not* match unless listed by hand.
-
-**First load may be slow.** The Render free tier suspends the API after ~15
-minutes of no traffic, and the next request waits 30-60s for it to wake.
-
-## Data sources
-
-Every screen is backed by a live endpoint, read through `useApiQuery`
-(`src/hooks/useApiQuery.ts`), which adds polling, a tighter retry cadence while
-the backend is down, and an `isReconnecting` state so a view keeps its last
-good data behind a notice instead of blanking out.
+<br>
 
 | Screen | Source |
 | --- | --- |
@@ -99,110 +197,121 @@ good data behind a notice instead of blanking out.
 | Risk Register | `/api/risks` (+ `/:assetId/recompute`) |
 | Remediation | `/api/remediations` (+ `/summary`, `/:id/status`, `/:id/assign`) |
 | Controls, Policies | `/api/controls`, `/api/policies` |
-| Audit Trail (admin) | `/api/audit` |
-| Data Import (admin) | `/api/import` (contract, template, validate, commit) |
+| Audit Trail | `/api/audit` |
+| Data Import | `/api/import` (contract, template, validate, commit) |
 | Identities & Members, Settings | `/api/identities`, `/api/organization` |
-| Global search (⌘K / Ctrl K) | `/api/search` |
+| Global search | `/api/search` |
 
-### Deep links
+</details>
 
-List pages seed their search and filters from the URL
-(`src/hooks/useListControls.ts`), so any view can be linked to directly —
-`/threats?severity=CRITICAL`, `/access?flaggedOnly=true`,
-`/assets?search=Billing`, `/risks?open=102`. The dashboard's Action Centre,
-the risk matrix and global search all use this, so a finding always lands on
-the records behind it rather than on an unfiltered list.
-
-## Signing in
-
-`src/components/AuthProvider.tsx` authenticates against `POST /api/auth/login`.
-Credentials are real — the backend decides who gets in.
-
-The access token (JWT, 1 hour) is held **in memory only** and never written
-to `localStorage` or `sessionStorage`. The refresh token lives in the httpOnly
-`drishti_refresh` cookie, which script cannot read; on load the app calls
-`POST /api/auth/refresh` and the browser presents the cookie, so a reload
-keeps you signed in without any credential being reachable from JavaScript.
-A refresh that fails for a transient reason (rate limit, network) is retried
-with backoff rather than ending the session — only an answer from the server
-ends it.
-
-Logging out clears the token first and then calls `/api/auth/logout`, so the
-session ends locally even if the API is unreachable.
+---
 
 ## Design system
 
 Drishti shares the **Chronos** design system with its sibling Wayam AI
 console, so the two read as one product family.
 
-- **Tokens** — `src/styles/tokens.css`. Two tiers: a reference palette
-  (`--ref-*`, identical to Chronos) and semantic tokens (`--sem-*`) that
-  components consume through Tailwind utilities in `tailwind.config.ts`.
-  Components never reference a raw palette value.
-- **Surfaces** — a light grey page, white containers, translucent hairline
-  strokes, no shadows on panels. Dark mode is a toggle, not the default.
-- **Type** — Michroma for display and figures, Geist for everything else.
-- **Controls** — pills: buttons, inputs, selects and filter chips are
-  `rounded-full`. The primary action is black in light mode and white in dark;
-  Wayam orange is identity only (logo and the domain marks), never a control.
-- **Status** — solid pill badges for the one status a row is about; soft
-  tinted tags for attributes and multi-tag cells.
-- **Risk bands** — five bands, five fills (`--sem-band-*`), the same colour in
-  every badge, matrix chip and distribution bar.
-- **Domain marks** — the twelve Drishti icons in
-  `src/components/DomainIcon.tsx`, traced from `design/icons-source/`. They
-  appear in the sidebar, on every KPI tile and in page headers.
-- **3D marks** — 61 Chronos-style orange renders. The list is
-  `src/lib/icons3d.ts` (every name, and why the unplaced ones are unplaced);
-  the built files are `public/brand/icons-3d/`; render only through
-  `<Drishti3DIcon>`. Placement: one per page header, one on every KPI tile,
-  empty and error states, the 404 and sign-in — never below 28px, where a
-  render turns to mud, so table badges stay text. The five band markers are
-  not used: their colours contradict the risk-band ramp. 46 were generated
-  (2K sources and build script on the `feat/ui-overhaul` branch); 15 come
-  from the Glossy 3D set in the Wayam Assets Figma library.
-  `DRISHTI_3D_ICON_FLOW_LIST.md` maps every slot and holds the prompts for
-  the marks still to generate.
-- **Icon blocks** — the small rounded-square marks in rows are a solid fill
-  with a white glyph; tables keep them neutral so the badge carries colour.
-- **Formatting** — numbers and dates always format in `en-US`
+- **Tokens** — `src/styles/tokens.css`: a reference palette (`--ref-*`) and
+  semantic tokens (`--sem-*`) consumed through Tailwind. Components never use a
+  raw colour.
+- **Surfaces** — light grey page, white containers, hairline strokes, no
+  panel shadows. Michroma for display and figures, Geist for everything else.
+- **Controls** — pills throughout. The primary action is black in light mode
+  and white in dark; Wayam orange is identity only, never a control.
+- **Risk bands** — five bands with a colour-blind-checked ramp, identical in
+  every badge, matrix dot and distribution bar.
+- **3D marks** — 61 orange renders in `public/brand/icons-3d/`, one per page
+  header and KPI tile, and in empty and error states. Never below 28px; table
+  badges stay text. The slot map and the prompts for the marks still to make
+  are in [`docs/design/3d-icons.md`](docs/design/3d-icons.md).
+- **Formatting** — numbers and dates always render in `en-US`
   (`src/lib/format.ts`), so a figure reads the same for every viewer.
+
+---
 
 ## Project structure
 
 ```
 src/
-  pages/         One file per route
-  components/    Layout (sidebar, top bar, command palette), DataTable,
-                 PhiSankey, RiskMatrix, DomainIcon, ui-bits (atoms: Card,
-                 Btn, Badge, Input, Modal, SlideOver), ui-patterns (page
-                 header, KPI tile, filters, risk vocabulary), components/ui/*
-                 (shadcn primitives)
-  hooks/         use-auth (session), useApiQuery (shared query behaviour),
-                 useListControls (paging, search, URL-seeded filters) and the
-                 per-endpoint hooks built on them
-  lib/           apiClient, apiTypes (wire shapes), mappers, tone, format,
-                 icons, dates
-  styles/        tokens.css — the design tokens
-  test/          Vitest suites; live-backend.test.tsx needs a running API
+  pages/        One file per route
+  components/   Layout (sidebar, top bar, command palette), DataTable,
+                PhiSankey, RiskMatrix, DomainIcon, Drishti3DIcon,
+                ui-bits (atoms), ui-patterns (page header, KPI tile, filters)
+  hooks/        Session, useApiQuery, useListControls and per-endpoint hooks
+  lib/          API client and wire types, mappers, tone, format, dates
+  styles/       tokens.css — the design tokens
+  test/         Vitest suites
+public/brand/   Built 3D marks (WebP + PNG fallback)
+design/         Source art for the line icons (not shipped)
+demo-pack/      Realistic CSV files for demonstrating Data Import
+docs/           Guides, API contract, customer and demo material
 ```
+
+---
 
 ## Testing
 
 ```bash
 npx vitest run --exclude "**/live-backend.test.tsx"   # what CI runs
-npx vitest run src/test/live-backend.test.tsx          # needs a live backend
+npx vitest run src/test/live-backend.test.tsx          # needs a live API
 ```
 
-`live-backend.test.tsx` **skips itself when the API is unreachable** rather
-than failing, so it reports green on a frontend-only machine without having
-asserted anything. Check its output for `[skip]` lines before treating it
-as coverage. CI excludes it outright.
+CI (`.github/workflows/ci.yml`) runs typecheck, lint, tests and a build on
+every push and pull request, and all four must pass.
+`live-backend.test.tsx` **skips itself** when the API is unreachable, so check
+its output for `[skip]` lines before counting it as coverage.
+
+---
+
+## Deploying
+
+Hosted on **Vercel** (static build), against the API on **Render** and
+Postgres on **Supabase**. `vercel.json` holds the frontend side; the backend's
+`DEPLOYMENT.md` holds the rest. A `Dockerfile` + `nginx.conf` build an
+equivalent container image.
+
+```bash
+vercel env add VITE_API_BASE_URL production   # https://<service>.onrender.com
+vercel env add VITE_API_BASE_URL preview
+vercel --prod
+```
+
+Worth knowing before changing anything:
+
+- `VITE_API_BASE_URL` is inlined at **build** time. Changing it needs a redeploy.
+- Assets build into `/static/`, not `/assets/`, because the app has an
+  `/assets` route that Vite's default folder would shadow. Don't "fix" it.
+- The API allowlists exact origins (`FRONTEND_ORIGIN`), so the production
+  origin must be set on it before sign-in works. Preview URLs are not covered.
+- Render's free tier sleeps after ~15 minutes idle; the first request after
+  that waits 30 to 60 seconds.
+
+---
+
+## Documentation
+
+| Document | For |
+|---|---|
+| [User guide](docs/user-guide.md) | People using Drishti — organised by the job to be done |
+| [API contract](docs/api-contract.md) | Endpoints the frontend expects, including ones not yet built |
+| [Architecture](docs/architecture.md) | How the pieces fit, and why |
+| [Demo script](docs/demo/demo-script.md) · [Demo operations](docs/demo/demo-operations.md) | Running a customer demo |
+| [One-pager](docs/customer/one-pager.md) · [FAQ](docs/customer/faq.md) · [Feature matrix](docs/customer/feature-matrix.md) | Customer-facing material |
+| [3D icons](docs/design/3d-icons.md) | Every icon slot, and the prompts for the marks still to make |
+| [TypeScript hardening](docs/typescript-hardening.md) | The plan for turning on `strictNullChecks` |
+| [Demo pack](demo-pack/README.md) | Sample import files and the scenarios they tell |
+
+---
 
 ## Known limitations
 
-- **Notifications have no backend.** The bell opens a panel that says so
-  rather than showing an invented feed; the event-stream contract is in
-  `FRONTEND_API_CONTRACT.md`.
-- **Demo accounts are named by the backend seed.** The sign-in addresses in
-  `USER_WORKFLOW.md` are whatever the backend seeds; rename them there.
+- **Notifications have no backend yet.** The bell opens a panel that says so
+  rather than showing an invented feed; the event contract is in the
+  [API contract](docs/api-contract.md).
+- **Fixing a flow is recorded, not applied.** *Raise remediation* records the
+  finding; the map changes when the underlying flow data does.
+- **`strictNullChecks` is off.** See [TypeScript hardening](docs/typescript-hardening.md).
+
+<br>
+
+<div align="center"><sub>Drishti by <b>Wayam AI</b></sub></div>

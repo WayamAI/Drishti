@@ -122,7 +122,7 @@ cookie that scripts cannot read. Every record is scoped to an organisation and
 every query is scoped to the organisation in the signed session; a request for
 another organisation's record returns *not found*. Deployable as containers.
 
-See `DRISHTI_ARCHITECTURE_OVERVIEW.md`.
+See `../architecture.md`.
 
 ---
 

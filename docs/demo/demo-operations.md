@@ -68,7 +68,7 @@ npm run db:demo:reset
 
 This removes the demo organisation's records and re-seeds them, so every
 demonstration starts from the same dataset — the figures in
-`DRISHTI_CUSTOMER_DEMO_SCRIPT.md` will match what is on screen.
+`demo-script.md` will match what is on screen.
 
 See §8 for exactly what it touches and why it is safe.
 
@@ -120,7 +120,7 @@ Run it again and reload.
 
 ## 7 — Run the demo
 
-Follow `DRISHTI_CUSTOMER_DEMO_SCRIPT.md`. Twelve steps, 10 to 15 minutes.
+Follow `demo-script.md`. Twelve steps, 10 to 15 minutes.
 
 **Before you share your screen:**
 

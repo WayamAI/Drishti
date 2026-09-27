@@ -35,7 +35,7 @@ const fmt = (n: number) => n.toLocaleString(LOCALE);
  * written; a refresh brought the violation straight back. Claiming a security
  * remediation that did not happen is the most damaging thing this product
  * could do, so it is gone until POST /api/dataflows/:id/remediate exists
- * (specified in FRONTEND_API_CONTRACT.md).
+ * (specified in docs/api-contract.md).
  *
  * The node drawer also carried invented facts — a fixed "Name, DOB, SSN,
  * Diagnosis" data-type list, "Users with access: 47", "Last audit: Apr 22

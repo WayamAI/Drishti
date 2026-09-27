@@ -221,7 +221,7 @@ all — a scoping mistake fails loudly and changes nothing rather than
 half-destroying a tenant. It also refuses to run under `NODE_ENV=production`
 without an explicit override.
 
-See `DRISHTI_DEMO_OPERATIONS.md`.
+See `docs/demo/demo-operations.md`.
 
 ## Deployment
 
