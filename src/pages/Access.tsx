@@ -165,9 +165,9 @@ export default function Access() {
 
       {/* Organisation-wide, from /api/access/summary — never from the page. */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Access grants" value={s?.total} icon="access" domainIcon="identity" />
+        <MetricCard label="Access grants" art="identity" value={s?.total} icon="access" domainIcon="identity" />
         <MetricCard
-          label="Flagged"
+          label="Flagged" art="flagged"
           value={s?.flagged}
           icon="threats" domainIcon="threat"
           tone="warning"
@@ -175,14 +175,14 @@ export default function Access() {
           sub={s ? `of ${s.total} grants` : undefined}
         />
         <MetricCard
-          label="Without MFA"
+          label="Without MFA" art="noMfa"
           value={s?.withoutMfa}
           icon="unlocked" domainIcon="control"
           tone="danger"
           emphasis={Boolean(s?.withoutMfa)}
         />
         <MetricCard
-          label="Stale or never used"
+          label="Stale or never used" art="staleAccess"
           value={s ? s.stale + s.neverUsed : undefined}
           icon="clock" domainIcon="audit"
           tone="warning"

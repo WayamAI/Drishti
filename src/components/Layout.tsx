@@ -532,6 +532,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <SlideOver open={notifOpen} onClose={() => setNotifOpen(false)} width={380} title="Notifications">
         <EmptyState
           icon="notification"
+          art="emptyNotifications"
           title="No notifications"
           message="Drishti will surface new threats, risk-band changes and failed imports here once the events API is connected."
           height={320}

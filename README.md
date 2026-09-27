@@ -115,7 +115,7 @@ the records behind it rather than on an unfiltered list.
 
 ## Signing in
 
-`src/hooks/use-auth.tsx` authenticates against `POST /api/auth/login`.
+`src/components/AuthProvider.tsx` authenticates against `POST /api/auth/login`.
 Credentials are real — the backend decides who gets in.
 
 The access token (JWT, 1 hour) is held **in memory only** and never written
@@ -152,14 +152,17 @@ console, so the two read as one product family.
 - **Domain marks** — the twelve Drishti icons in
   `src/components/DomainIcon.tsx`, traced from `design/icons-source/`. They
   appear in the sidebar, on every KPI tile and in page headers.
-- **3D marks** — 46 Chronos-style orange renders. The list is
+- **3D marks** — 61 Chronos-style orange renders. The list is
   `src/lib/icons3d.ts` (every name, and why the unplaced ones are unplaced);
   the built files are `public/brand/icons-3d/`; render only through
-  `<Drishti3DIcon>`. Placement rule: one per page header, the dashboard's
-  lead KPI row, empty and error states, the 404 and sign-in — never below
-  28px, where a render turns to mud. The five band markers are not used:
-  their colours contradict the risk-band ramp. The 2K source renders and the
-  build script live on the `feat/ui-overhaul` branch.
+  `<Drishti3DIcon>`. Placement: one per page header, one on every KPI tile,
+  empty and error states, the 404 and sign-in — never below 28px, where a
+  render turns to mud, so table badges stay text. The five band markers are
+  not used: their colours contradict the risk-band ramp. 46 were generated
+  (2K sources and build script on the `feat/ui-overhaul` branch); 15 come
+  from the Glossy 3D set in the Wayam Assets Figma library.
+  `DRISHTI_3D_ICON_FLOW_LIST.md` maps every slot and holds the prompts for
+  the marks still to generate.
 - **Icon blocks** — the small rounded-square marks in rows are a solid fill
   with a white glyph; tables keep them neutral so the badge carries colour.
 - **Formatting** — numbers and dates always format in `en-US`
@@ -203,5 +206,3 @@ as coverage. CI excludes it outright.
   `FRONTEND_API_CONTRACT.md`.
 - **Demo accounts are named by the backend seed.** The sign-in addresses in
   `USER_WORKFLOW.md` are whatever the backend seeds; rename them there.
-- **Lint carries ~15 warnings**, all `react-refresh/only-export-components`
-  in files that export constants beside components. No errors.

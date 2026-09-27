@@ -201,9 +201,9 @@ export default function PhiFlow() {
         clipped behind a scrollbar at ordinary desktop widths.
       */}
       <section aria-label="Flow summary" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <MetricCard label="Flows mapped" value={flows.data ? summary.total : undefined} sub={`${summary.compliant} compliant`} icon="phiFlow" domainIcon="dataFlow" />
+        <MetricCard label="Flows mapped" art="dataFlow" value={flows.data ? summary.total : undefined} sub={`${summary.compliant} compliant`} icon="phiFlow" domainIcon="dataFlow" />
         <MetricCard
-          label="Violations"
+          label="Violations" art="kpiUnencrypted"
           value={flows.data ? summary.violations : undefined}
           sub="unencrypted PHI in transit"
           icon="unlocked" domainIcon="control"
@@ -211,7 +211,7 @@ export default function PhiFlow() {
           emphasis={summary.violations > 0}
         />
         <MetricCard
-          label="Warnings"
+          label="Warnings" art="warning"
           value={flows.data ? summary.warnings : undefined}
           sub="flows needing review"
           icon="warning" domainIcon="risk"
@@ -219,7 +219,7 @@ export default function PhiFlow() {
           emphasis={summary.warnings > 0}
         />
         <MetricCard
-          label="PHI in transit today"
+          label="PHI in transit today" art="phi"
           value={flows.data ? summary.inTransit.toLocaleString(LOCALE) : undefined}
           sub="records across all flows"
           icon="record" domainIcon="phi"

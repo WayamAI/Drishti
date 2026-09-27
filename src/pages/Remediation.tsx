@@ -221,16 +221,16 @@ export default function Remediation() {
           Overdue is a flag across the open ones, and is labelled as such.
         */}
         <MetricCard
-          label="Awaiting work"
+          label="Awaiting work" art="remediation"
           value={s ? s.byStatus.OPEN + s.byStatus.REOPENED : undefined}
           icon="tasks" domainIcon="remediation"
           tone="danger"
           emphasis={Boolean(s && s.byStatus.OPEN + s.byStatus.REOPENED)}
           sub={s && s.byStatus.REOPENED ? `${s.byStatus.REOPENED} reopened` : undefined}
         />
-        <MetricCard label="In progress" value={s?.byStatus.IN_PROGRESS} icon="clock" tone="warning" />
+        <MetricCard label="In progress" art="inProgress" value={s?.byStatus.IN_PROGRESS} icon="clock" tone="warning" />
         <MetricCard
-          label="Overdue"
+          label="Overdue" art="clock"
           value={s?.overdue}
           icon="threats" domainIcon="audit"
           tone="danger"
@@ -238,7 +238,7 @@ export default function Remediation() {
           sub={s ? "of the open findings" : undefined}
         />
         <MetricCard
-          label="Closed"
+          label="Closed" art="success"
           value={s ? s.byStatus.RESOLVED + s.byStatus.ACCEPTED : undefined}
           icon="check"
           tone="success"

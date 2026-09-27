@@ -108,10 +108,10 @@ export default function Users() {
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Identities" value={identities.meta?.total} icon="identity" domainIcon="identity" />
-        <MetricCard label="Drishti members" value={members.data?.length} icon="access" domainIcon="identity" />
-        <MetricCard label="Assets" value={org.data?.counts.assets} icon="database" domainIcon="asset" />
-        <MetricCard label="Organisation" value={org.data?.name} icon="facility" domainIcon="dashboard" />
+        <MetricCard label="Identities" art="identity" value={identities.meta?.total} icon="identity" domainIcon="identity" />
+        <MetricCard label="Drishti members" art="members" value={members.data?.length} icon="access" domainIcon="identity" />
+        <MetricCard label="Assets" art="kpiAssets" value={org.data?.counts.assets} icon="database" domainIcon="asset" />
+        <MetricCard label="Organisation" art="organisation" value={org.data?.name} icon="facility" domainIcon="dashboard" />
       </div>
 
       <Card className="p-4">

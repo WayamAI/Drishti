@@ -138,16 +138,16 @@ export default function Risks() {
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Assets scored" value={risks.data ? counts.total : undefined} icon="risks" domainIcon="asset" />
+        <MetricCard label="Assets scored" art="risk" value={risks.data ? counts.total : undefined} icon="risks" domainIcon="asset" />
         <MetricCard
-          label="Critical or extreme"
+          label="Critical or extreme" art="kpiCritical"
           value={risks.data ? counts.severe : undefined}
           icon="threats" domainIcon="risk"
           tone="danger"
           emphasis={Boolean(counts.severe)}
         />
-        <MetricCard label="High" value={risks.data ? counts.high : undefined} icon="activity" domainIcon="risk" tone="warning" />
-        <MetricCard label="Highest score" value={risks.data ? counts.peak : undefined} icon="chart" domainIcon="risk" />
+        <MetricCard label="High" art="warning" value={risks.data ? counts.high : undefined} icon="activity" domainIcon="risk" tone="warning" />
+        <MetricCard label="Highest score" art="chart" value={risks.data ? counts.peak : undefined} icon="chart" domainIcon="risk" />
       </div>
 
       <Card className="p-4">

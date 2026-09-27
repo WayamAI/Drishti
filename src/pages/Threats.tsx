@@ -143,7 +143,7 @@ export default function Threats() {
       {/* From /api/threats/summary — the estate, not the page. */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          label="Open threats"
+          label="Open threats" art="threat"
           value={s?.open}
           icon="threats" domainIcon="threat"
           tone="danger"
@@ -151,14 +151,14 @@ export default function Threats() {
           sub={s ? `of ${s.total} detected` : undefined}
         />
         <MetricCard
-          label="Open critical"
+          label="Open critical" art="kpiCritical"
           value={s?.openCritical}
           icon="activity" domainIcon="threat"
           tone="danger"
           emphasis={Boolean(s?.openCritical)}
         />
-        <MetricCard label="Investigating" value={s?.byStatus.INVESTIGATING ?? 0} icon="search" tone="warning" />
-        <MetricCard label="Resolved" value={s?.byStatus.RESOLVED ?? 0} icon="check" tone="success" />
+        <MetricCard label="Investigating" art="investigating" value={s?.byStatus.INVESTIGATING ?? 0} icon="search" tone="warning" />
+        <MetricCard label="Resolved" art="success" value={s?.byStatus.RESOLVED ?? 0} icon="check" tone="success" />
       </div>
 
       {headline && (

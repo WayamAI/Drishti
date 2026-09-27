@@ -167,9 +167,9 @@ export default function Vendors() {
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Vendors" value={stats?.total} icon="facility" domainIcon="vendor" />
+        <MetricCard label="Vendors" art="vendor" value={stats?.total} icon="facility" domainIcon="vendor" />
         <MetricCard
-          label="Without a valid BAA"
+          label="Without a valid BAA" art="baaGap"
           value={stats?.noBaa}
           icon="threats" domainIcon="control"
           tone="danger"
@@ -177,14 +177,14 @@ export default function Vendors() {
           sub="missing, expired or pending"
         />
         <MetricCard
-          label="Assessment overdue"
+          label="Assessment overdue" art="clock"
           value={stats?.overdue}
           icon="clock" domainIcon="audit"
           tone="warning"
           emphasis={Boolean(stats?.overdue)}
         />
         <MetricCard
-          label="PHI records exposed"
+          label="PHI records exposed" art="phi"
           value={stats ? stats.phiVolume.toLocaleString(LOCALE) : undefined}
           icon="record" domainIcon="phi"
           sub="across all vendors"

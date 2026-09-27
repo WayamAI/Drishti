@@ -73,6 +73,13 @@ export const ICON_3D_NAMES = [
   "database", "server", "network", "chart", "intelligence", "model",
   // hero surfaces
   "notFound", "sessionExpired", "commandMark",
+  // Taken from the Wayam Assets Figma library (page "Iconography"), Glossy 3D
+  // style only; the Plinth, Slate and Line styles there would not sit beside
+  // this set. Sources are 256px, so the -320 files are a slight upscale:
+  // keep these off the hero surfaces. See DRISHTI_3D_ICON_FLOW_LIST.md.
+  "investigating", "flagged", "noMfa", "staleAccess", "members", "organisation",
+  "appearance", "inProgress", "reopened", "falsePositive", "riskAccepted",
+  "baaSigned", "baaGap", "baaExpired", "emptyNotifications",
 ] as const;
 
 export type Icon3DName = (typeof ICON_3D_NAMES)[number];
