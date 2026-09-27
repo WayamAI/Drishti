@@ -90,7 +90,7 @@ export default function Threats() {
       header: "Severity",
       width: "w-28",
       sortValue: t => SEVERITIES.length - SEVERITIES.indexOf(t.severity),
-      cell: t => <Badge tone={SEVERITY_TONE[t.severity]}>{t.severity}</Badge>,
+      cell: t => <Badge sentence tone={SEVERITY_TONE[t.severity]}>{t.severity}</Badge>,
     },
     {
       id: "title",
@@ -98,7 +98,7 @@ export default function Threats() {
       sortValue: t => t.title,
       cell: t => (
         <div className="flex items-center gap-2.5">
-          <EntityAvatar icon="threat" tone={SEVERITY_TONE[t.severity]} size="sm" />
+          <EntityAvatar icon="threat" tone="muted" size="sm" />
           <div className="min-w-0">
             <div className={`truncate text-body-md ${t.open ? "text-primary" : "text-tertiary"}`}>
               {t.title}
@@ -119,7 +119,7 @@ export default function Threats() {
       id: "status",
       header: "Status",
       sortValue: t => t.status,
-      cell: t => <Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>,
+      cell: t => <Badge variant="soft" tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>,
     },
   ];
 
@@ -193,6 +193,7 @@ export default function Threats() {
           isRowActive={t => t.id === openId}
           searchPlaceholder="Search threats or systems…"
           emptyIcon="threats"
+          emptyArt="emptyThreats"
           emptyTitle="No threats detected"
           emptyMessage="Nothing matches the current filters."
           toolbar={
@@ -288,8 +289,8 @@ function ThreatDrawer({ id, onClose }: { id: number | null; onClose: () => void 
             <EntityAvatar icon="threat" tone={SEVERITY_TONE[t.severity]} size="lg" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge tone={SEVERITY_TONE[t.severity]}>{t.severity}</Badge>
-                <Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>
+                <Badge sentence tone={SEVERITY_TONE[t.severity]}>{t.severity}</Badge>
+                <Badge variant="soft" tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>
               </div>
               <p className="mt-1.5 text-body-sm text-tertiary">
                 {t.assetName} · detected {age(t.hoursSinceDetection)}

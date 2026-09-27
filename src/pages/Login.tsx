@@ -6,6 +6,7 @@ import { hadSession } from "@/lib/sessionBreadcrumb";
 import { useTheme } from "@/hooks/use-theme";
 import drishtiLogoLight from "@/assets/brand/drishti-logo-light.svg";
 import drishtiLogoDark from "@/assets/brand/drishti-logo-dark.svg";
+import { LOGIN_BACKDROP } from "@/lib/icons3d";
 
 export default function Login() {
   const { isAuthenticated, isInitializing, isRecovering, login } = useAuth();
@@ -66,7 +67,26 @@ export default function Login() {
     <div className="flex min-h-screen bg-page">
       {/* Hero — the Chronos sign-in split: the product's idea on the left. */}
       <aside className="relative hidden flex-1 overflow-hidden bg-[#0b0b0c] lg:flex lg:flex-col lg:justify-end">
-        <FlowArt />
+        {/*
+          The machine room: an aperture (drishti, sight) with PHI running out
+          of it as light. Anchored left, where the aperture sits, so narrower
+          heroes crop from the right — which is also where the renderer's
+          watermark is. The bottom fade carries the headline and covers the
+          last of that corner at any width.
+        */}
+        <img
+          src={LOGIN_BACKDROP}
+          alt=""
+          aria-hidden
+          decoding="async"
+          {...{ fetchpriority: "high" }}
+          className="absolute inset-0 h-full w-full object-cover object-[20%_center]"
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-[linear-gradient(to_top,rgba(11,11,12,0.96)_0%,rgba(11,11,12,0.7)_28%,rgba(11,11,12,0)_60%)]"
+        />
+        <div aria-hidden className="absolute inset-y-0 right-0 w-24 bg-[linear-gradient(to_left,rgba(11,11,12,0.85),rgba(11,11,12,0))]" />
         <div className="relative z-10 max-w-2xl p-10">
           <p className="font-display text-display-4xl text-white">See where PHI goes.</p>
           <p className="mt-3 max-w-md text-body-lg text-white/70">
@@ -187,70 +207,5 @@ export default function Login() {
         <p className="text-caption font-normal text-quaternary">Drishti by Wayam AI · Demo Environment</p>
       </main>
     </div>
-  );
-}
-
-/**
- * Abstract PHI flow: ribbons converging on one core system and fanning out,
- * with a single red ribbon — the unencrypted one. Decorative only.
- */
-function FlowArt() {
-  const inbound = [90, 190, 300, 410, 520];
-  const outbound = [140, 260, 380, 500];
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 800 700"
-      preserveAspectRatio="xMidYMid slice"
-      className="absolute inset-0 h-full w-full"
-    >
-      <defs>
-        <linearGradient id="flow-in" x1="0" x2="1">
-          <stop offset="0" stopColor="#ff7b1c" stopOpacity="0.05" />
-          <stop offset="1" stopColor="#ff7b1c" stopOpacity="0.45" />
-        </linearGradient>
-        <linearGradient id="flow-out" x1="0" x2="1">
-          <stop offset="0" stopColor="#ff7b1c" stopOpacity="0.45" />
-          <stop offset="1" stopColor="#ff7b1c" stopOpacity="0.04" />
-        </linearGradient>
-        <radialGradient id="flow-glow">
-          <stop offset="0" stopColor="#ff7b1c" stopOpacity="0.3" />
-          <stop offset="1" stopColor="#ff7b1c" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="flow-fade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0.35" stopColor="#0b0b0c" stopOpacity="0" />
-          <stop offset="1" stopColor="#0b0b0c" stopOpacity="0.95" />
-        </linearGradient>
-      </defs>
-      <circle cx="400" cy="300" r="260" fill="url(#flow-glow)" />
-      {inbound.map((y, i) => (
-        <path
-          key={`in-${y}`}
-          d={`M-20 ${y} C 200 ${y}, 240 300, 372 300`}
-          fill="none"
-          stroke="url(#flow-in)"
-          strokeWidth={10 + i * 4}
-          strokeLinecap="round"
-        />
-      ))}
-      {outbound.map((y, i) => {
-        const leak = i === 1;
-        return (
-          <path
-            key={`out-${y}`}
-            d={`M428 300 C 560 300, 600 ${y}, 820 ${y}`}
-            fill="none"
-            stroke={leak ? "#e9343c" : "url(#flow-out)"}
-            strokeOpacity={leak ? 0.8 : 1}
-            strokeWidth={leak ? 6 : 12 + i * 3}
-            strokeLinecap="round"
-            className={leak ? "dash-flow" : undefined}
-          />
-        );
-      })}
-      <rect x="372" y="236" width="56" height="128" rx="10" fill="#161618" stroke="#ff7b1c" strokeOpacity="0.8" />
-      <rect x="372" y="236" width="4" height="128" rx="2" fill="#ff7b1c" />
-      <rect x="0" y="0" width="800" height="700" fill="url(#flow-fade)" />
-    </svg>
   );
 }

@@ -19,6 +19,7 @@ import { useRawDataFlows } from "@/hooks/useDataFlows";
 import { useVendors } from "@/hooks/useVendors";
 import { useAccessSummary } from "@/hooks/useAccess";
 import { useThreatSummary } from "@/hooks/useThreats";
+import { useOrganization } from "@/hooks/useGovernance";
 import type { Tone } from "@/lib/tone";
 import type { RiskBand } from "@/lib/apiTypes";
 import { LOCALE } from "@/lib/format";
@@ -52,6 +53,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   // The audit trail is ADMIN-only server-side, so the activity feed is too.
   const isAdmin = useAuth().user?.role === "ADMIN";
+  const org = useOrganization();
 
   /*
    * Organisation-level figures.
@@ -195,25 +197,20 @@ export default function Dashboard() {
       <PageHeader
         icon="dashboard"
         title="Governance Overview"
-        description="Where PHI lives, how it moves, who can reach it, and where the risk concentrates — computed live from the Drishti API."
-        meta={
-          <>
-            <span className="flex items-center gap-1.5 text-caption text-tertiary">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="pulse-dot absolute inline-flex h-full w-full rounded-full bg-feedback-success-icon" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-feedback-success-icon" />
-              </span>
-              Polling every 30s
-            </span>
-            <span className="text-caption text-quaternary">Drishti workspace</span>
-          </>
-        }
+        description="Where PHI lives, how it moves, who can reach it, and where risk concentrates."
+        /*
+          Which organisation this is, from the API — the one fact the header
+          can add. Liveness is the top bar's job; saying it again here was
+          two indicators for one fact.
+        */
+        meta={org.data ? <span className="text-caption text-tertiary">{org.data.name}</span> : undefined}
       />
 
       {/* PRIMARY RISK SUMMARY */}
       <section aria-label="Risk summary" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Assets monitored"
+          art="kpiAssets"
           value={metrics.assets}
           icon="database" domainIcon="asset"
           sub={metrics.totalFlows !== undefined ? `${metrics.totalFlows} PHI flows mapped` : undefined}
@@ -221,6 +218,7 @@ export default function Dashboard() {
         />
         <MetricCard
           label="Critical or extreme"
+          art="kpiCritical"
           value={metrics.criticalOrExtreme}
           icon="threats" domainIcon="risk"
           tone="danger"
@@ -230,6 +228,7 @@ export default function Dashboard() {
         />
         <MetricCard
           label="PHI records / day"
+          art="phi"
           value={metrics.phiRecordsPerDay?.toLocaleString(LOCALE)}
           icon="record" domainIcon="phi"
           sub="across all mapped flows"
@@ -237,6 +236,7 @@ export default function Dashboard() {
         />
         <MetricCard
           label="Unencrypted flows"
+          art="kpiUnencrypted"
           value={metrics.unencryptedFlows}
           icon="unlocked" domainIcon="dataFlow"
           tone="danger"
@@ -375,6 +375,7 @@ export default function Dashboard() {
           <DataState
             query={listAsQuery(matrixRisks)}
             height={360}
+            emptyArt="emptyRisks"
             emptyTitle="No scored assets"
             emptyMessage="Import assets and run a risk assessment to populate the matrix."
           >

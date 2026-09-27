@@ -98,7 +98,7 @@ export default function Risks() {
       searchValue: r => r.assetName,
       cell: r => (
         <div className="flex items-center gap-2.5">
-          <EntityAvatar icon="risk" tone={BAND_TONE[r.band]} size="sm" />
+          <EntityAvatar icon="risk" tone="muted" size="sm" />
           <span className="truncate text-body-md text-primary">{r.assetName}</span>
         </div>
       ),
@@ -127,7 +127,7 @@ export default function Risks() {
       <PageHeader
         icon="risk"
         title="Risk Register"
-        description="Every scored asset, ranked by the score the API derived. Drishti visualises backend truth and never recomputes a band client-side."
+        description="Every assessed system, worst first. The score weighs likelihood, impact, exposure and control gaps."
         actions={
           <Btn variant="outline" onClick={() => { void risks.refresh(); void matrix.refresh(); }} disabled={risks.isFetching}>
             <AppIcon name="refresh" size="sm" spin={risks.isFetching} />
@@ -158,6 +158,7 @@ export default function Risks() {
           query={listAsQuery(matrix)}
           height={420}
           emptyIcon="risks"
+          emptyArt="emptyRisks"
           emptyTitle="No scored assets"
           emptyMessage="No risk rows were returned. Import assets and recompute their risk to populate this."
         >
@@ -195,6 +196,7 @@ export default function Risks() {
           isRowActive={r => r.id === openId}
           initialSort={{ columnId: "score", direction: "desc" }}
           searchPlaceholder="Search by asset…"
+          emptyArt="emptyRisks"
           emptyTitle="No risks recorded"
           emptyMessage="No risk rows were returned by the API."
           toolbar={

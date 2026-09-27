@@ -231,6 +231,7 @@ export default function PhiFlow() {
         <DataState
           query={listAsQuery(flows)}
           height={496}
+          emptyArt="emptyPhiFlow"
           emptyTitle="No PHI flows recorded"
           emptyMessage="The API returned no data flows. If the backend was just set up, run the seed script."
         >

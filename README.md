@@ -152,6 +152,16 @@ console, so the two read as one product family.
 - **Domain marks** — the twelve Drishti icons in
   `src/components/DomainIcon.tsx`, traced from `design/icons-source/`. They
   appear in the sidebar, on every KPI tile and in page headers.
+- **3D marks** — 46 Chronos-style orange renders. The list is
+  `src/lib/icons3d.ts` (every name, and why the unplaced ones are unplaced);
+  the built files are `public/brand/icons-3d/`; render only through
+  `<Drishti3DIcon>`. Placement rule: one per page header, the dashboard's
+  lead KPI row, empty and error states, the 404 and sign-in — never below
+  28px, where a render turns to mud. The five band markers are not used:
+  their colours contradict the risk-band ramp. The 2K source renders and the
+  build script live on the `feat/ui-overhaul` branch.
+- **Icon blocks** — the small rounded-square marks in rows are a solid fill
+  with a white glyph; tables keep them neutral so the badge carries colour.
 - **Formatting** — numbers and dates always format in `en-US`
   (`src/lib/format.ts`), so a figure reads the same for every viewer.
 

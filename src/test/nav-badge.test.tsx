@@ -97,13 +97,14 @@ describe("page title in the header", () => {
    * the one page that did not say what it was.
    */
 
+  // The crumb is the menu label: the page header carries the long title.
   const ROUTES: Array<[string, string]> = [
-    ["/", "Governance Overview"],
-    ["/assets", "Asset Inventory"],
-    ["/phi-flow", "PHI Data Flow Map"],
-    ["/access", "Access & Identity Review"],
-    ["/threats", "Threat & Anomaly Detection"],
-    ["/vendors", "Vendor Risk"],
+    ["/", "Dashboard"],
+    ["/assets", "Assets"],
+    ["/phi-flow", "PHI Flow"],
+    ["/access", "Access & Identity"],
+    ["/threats", "Threats"],
+    ["/vendors", "Vendors"],
     ["/risks", "Risk Register"],
     ["/import", "Data Import"],
     ["/remediation", "Remediation"],
@@ -131,7 +132,7 @@ describe("page title in the header", () => {
 
     // The page's own <h1> lives in <PageHeader>, which is page content and
     // not rendered here. The breadcrumb is the shell's statement of where you
-    // are, and it is what PAGE_TITLES actually drives.
+    // are in the menu.
     const crumb = await screen.findByLabelText("Breadcrumb");
     expect(crumb).toHaveTextContent(title);
   });

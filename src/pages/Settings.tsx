@@ -1,97 +1,117 @@
-import { Card, Badge, Btn } from "@/components/ui-bits";
+import { useNavigate } from "react-router-dom";
+import { Card, Badge, Btn, SectionHeader } from "@/components/ui-bits";
 import { AppIcon } from "@/components/AppIcon";
-import { PageHeader, Field, FieldGroup, MetricCard } from "@/components/ui-patterns";
+import { PageHeader, Field, FieldGroup } from "@/components/ui-patterns";
 import { useOrganization } from "@/hooks/useGovernance";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/hooks/use-auth";
-import { getApiBaseUrl } from "@/lib/apiClient";
+import { notify } from "@/lib/notify";
 import { LOCALE, DATE_OPTIONS } from "@/lib/format";
+import { cn } from "@/lib/utils";
+
+const roleLabel = (role?: string | null) =>
+  role ? role.charAt(0) + role.slice(1).toLowerCase() : "—";
 
 /**
  * Settings.
  *
- * Deliberately short. Everything here is either read from the API or is a
- * genuine local preference that persists — there are no switches that only
- * move React state and look like configuration.
+ * Deliberately short: the organisation you are in, the account you are
+ * signed in with, and the one preference this browser keeps. Everything is
+ * either read from the API or a local preference that genuinely persists —
+ * no switch here only moves React state and looks like configuration.
  *
- * The organisation is read-only because the API exposes no write path for it,
- * and session details are shown because "which org am I in, as what role,
- * against which API" is the question this page actually gets opened for.
+ * What left, and why:
+ *   - An estate-count KPI row. Assets and vendors are counted on the
+ *     dashboard and Identities & Members; on a settings page they were noise.
+ *   - The API base URL and a paragraph on token storage. True, but written
+ *     for the engineer who built it, not the person who opens this page.
+ *   - A theme button labelled with the *current* theme, so "Light" switched
+ *     you to dark. A two-option control shows both states and which is on.
  */
 export default function Settings() {
+  const navigate = useNavigate();
   const org = useOrganization();
-  const { user, memberships } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { user, memberships, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
 
-  let apiBase = "not configured";
-  try { apiBase = getApiBaseUrl(); } catch { /* left as the default text */ }
-
-  const counts = org.data?.counts ?? {};
+  const onSignOut = () => {
+    logout();
+    notify.success("Signed out");
+    navigate("/login", { replace: true });
+  };
 
   return (
     <div className="space-y-4">
       <PageHeader
         title="Settings"
-        description="Your session, your organisation, and the preferences this browser remembers."
+        description="Your organisation, your account, and how Drishti looks in this browser."
       />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Assets" value={counts.assets} icon="database" domainIcon="asset" />
-        <MetricCard label="Vendors" value={counts.vendors} icon="facility" domainIcon="vendor" />
-        <MetricCard label="Identities" value={counts.identities} icon="identity" domainIcon="identity" />
-        <MetricCard label="Members" value={counts.members} icon="access" domainIcon="identity" />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="p-4">
+          <SectionHeader title="Organisation" subtitle="The workspace you are signed in to." />
+          <FieldGroup>
+            <Field label="Name" value={org.data?.name ?? "…"} />
+            <Field label="Workspace ID" value={<span className="font-mono text-body-sm">{org.data?.slug ?? "…"}</span>} />
+            <Field
+              label="Your role here"
+              value={org.data ? <Badge variant="soft" tone="info">{roleLabel(org.data.yourRole)}</Badge> : "…"}
+            />
+            <Field
+              label="Created"
+              value={org.data ? new Date(org.data.createdAt).toLocaleDateString(LOCALE, DATE_OPTIONS) : "…"}
+            />
+          </FieldGroup>
+          <p className="mt-3 text-caption font-normal text-tertiary">
+            Organisation details can't be changed from Drishti.
+          </p>
+        </Card>
+
+        <Card className="p-4">
+          <SectionHeader
+            title="Your account"
+            subtitle="Who you are signed in as."
+            action={
+              <Btn variant="outline" onClick={onSignOut}>
+                <AppIcon name="logout" size="sm" />
+                Sign out
+              </Btn>
+            }
+          />
+          <FieldGroup>
+            <Field label="Email" value={user?.email ?? "—"} />
+            <Field label="Role" value={roleLabel(user?.role)} />
+            <Field
+              label={memberships.length === 1 ? "Organisation" : "Organisations"}
+              value={memberships.length ? memberships.map(m => m.organizationName).join(", ") : "—"}
+            />
+          </FieldGroup>
+        </Card>
       </div>
 
       <Card className="p-4">
-        <h3 className="mb-2 font-display text-heading-md text-primary">Organisation</h3>
-        <FieldGroup>
-          <Field label="Name" value={org.data?.name ?? "…"} />
-          <Field label="Identifier" value={<span className="font-mono text-body-sm">{org.data?.slug ?? "…"}</span>} />
-          <Field label="Your role" value={org.data ? <Badge tone="info">{org.data.yourRole}</Badge> : "…"} />
-          <Field
-            label="Created"
-            value={org.data ? new Date(org.data.createdAt).toLocaleDateString(LOCALE, DATE_OPTIONS) : "…"}
-          />
-        </FieldGroup>
-        <p className="mt-3 text-caption text-tertiary">
-          Organisation details are read-only here. The API exposes no write
-          path for them, so Drishti does not offer one.
-        </p>
-      </Card>
-
-      <Card className="p-4">
-        <h3 className="mb-2 font-display text-heading-md text-primary">Session</h3>
-        <FieldGroup>
-          <Field label="Signed in as" value={user?.email ?? "—"} />
-          <Field label="Role" value={user?.role ?? "—"} />
-          <Field
-            label="Memberships"
-            value={memberships.length
-              ? memberships.map(m => m.organizationName).join(", ")
-              : "—"}
-          />
-          <Field label="API" value={<span className="font-mono text-body-sm">{apiBase}</span>} />
-        </FieldGroup>
-        <p className="mt-3 text-caption text-tertiary">
-          The access token lives in memory for one hour and is never written to
-          browser storage. A reload restores the session from an httpOnly
-          refresh cookie that scripts cannot read.
-        </p>
-      </Card>
-
-      <Card className="p-4">
-        <h3 className="mb-2 font-display text-heading-md text-primary">Preferences</h3>
-        <div className="flex items-center justify-between gap-4 border-b border-muted py-2.5 last:border-0">
-          <div className="min-w-0">
-            <div className="text-body-md text-primary">Appearance</div>
-            <div className="text-caption text-tertiary">
-              Remembered in this browser only.
-            </div>
-          </div>
-          <Btn variant="outline" onClick={toggleTheme}>
-            <AppIcon name={theme === "dark" ? "themeDark" : "themeLight"} size="sm" />
-            {theme === "dark" ? "Dark" : "Light"}
-          </Btn>
+        <SectionHeader title="Appearance" subtitle="Remembered in this browser only." />
+        <div role="radiogroup" aria-label="Theme" className="inline-flex rounded-full border border-muted bg-action p-1">
+          {(["light", "dark"] as const).map(t => {
+            const on = theme === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => setTheme(t)}
+                className={cn(
+                  "inline-flex h-8 items-center gap-1.5 rounded-full px-4 text-label-sm outline-none transition-colors",
+                  "focus-visible:ring-2 focus-visible:ring-active",
+                  on ? "bg-container text-primary shadow-sm ring-1 ring-inset ring-[var(--sem-stroke-muted)]" : "text-tertiary hover:text-secondary",
+                )}
+              >
+                <AppIcon name={t === "dark" ? "themeDark" : "themeLight"} size="sm" />
+                {t === "dark" ? "Dark" : "Light"}
+              </button>
+            );
+          })}
         </div>
       </Card>
     </div>

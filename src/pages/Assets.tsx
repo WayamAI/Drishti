@@ -101,7 +101,7 @@ export default function Assets() {
       searchValue: a => `${a.name} ${a.type}`,
       cell: a => (
         <div className="flex items-center gap-2.5">
-          <EntityAvatar icon="asset" tone={a.risk ? BAND_TONE[a.risk.band] : "muted"} size="sm" />
+          <EntityAvatar icon="asset" tone="muted" size="sm" />
           <div className="min-w-0">
             <div className="truncate text-body-md text-primary">{a.name}</div>
             <div className="text-caption text-tertiary">{TYPE_LABEL[a.type]}</div>
@@ -165,7 +165,7 @@ export default function Assets() {
       <PageHeader
         icon="asset"
         title="Asset Inventory"
-        description="Every system, service and data store Drishti monitors. Risk is scored per asset by the API; this view never re-derives it."
+        description="Every system that holds or moves PHI: how much it holds, how it is protected, and how risky it is."
         actions={
           <>
             <Btn variant="outline" onClick={() => void assets.refresh()} disabled={assets.isFetching}>
@@ -229,6 +229,7 @@ export default function Assets() {
           initialSort={{ columnId: "score", direction: "desc" }}
           searchPlaceholder="Search assets…"
           emptyIcon="database"
+          emptyArt="emptyAssets"
           emptyTitle="No assets yet"
           emptyMessage="Import an asset CSV from Data Import, or create one directly."
           toolbar={

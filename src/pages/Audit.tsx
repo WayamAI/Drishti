@@ -68,7 +68,7 @@ export default function AuditPage() {
       sortValue: e => e.action,
       cell: e => (
         <div className="flex items-center gap-2.5">
-          <EntityAvatar icon={iconFor(e.action)} tone={resultTone(e.result)} size="sm" />
+          <EntityAvatar icon={iconFor(e.action)} tone="muted" size="sm" />
           <span className="truncate text-body-md text-primary">{humanise(e.action)}</span>
         </div>
       ),
@@ -131,6 +131,7 @@ export default function AuditPage() {
           onRowClick={e => setSelected(e)}
           isRowActive={e => e.id === selected?.id}
           emptyIcon="audit"
+          emptyArt="emptyAudit"
           emptyTitle="No recorded activity"
           emptyMessage="Nothing has been recorded against this organisation yet."
           noMatchTitle="Nothing on this page"

@@ -88,7 +88,7 @@ export default function Controls() {
       sortValue: c => c.name,
       cell: c => (
         <div className="flex items-center gap-2.5">
-          <EntityAvatar icon="control" tone={STATUS_TONE[c.status]} size="sm" />
+          <EntityAvatar icon="control" tone="muted" size="sm" />
           <div className="min-w-0">
             <div className="truncate text-body-md text-primary">{c.name}</div>
             <div className="truncate text-caption text-tertiary">{CATEGORY_LABEL[c.category]}</div>
@@ -187,6 +187,7 @@ export default function Controls() {
           isRowActive={c => c.id === openId}
           searchPlaceholder="Search controls…"
           emptyIcon="locked"
+          emptyArt="emptyControls"
           emptyTitle="No controls recorded"
           emptyMessage={
             isAdmin

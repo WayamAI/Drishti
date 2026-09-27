@@ -2,6 +2,8 @@ import { useId, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { AppIcon } from "@/components/AppIcon";
 import { DomainIcon, type DomainIconName } from "@/components/DomainIcon";
+import { Drishti3DIcon } from "@/components/Drishti3DIcon";
+import { DOMAIN_TO_3D, type Icon3DName } from "@/lib/icons3d";
 import { Badge } from "@/components/ui-bits";
 import type { IconName } from "@/lib/icons";
 import type { Tone } from "@/lib/tone";
@@ -142,7 +144,7 @@ export type Breadcrumb = { label: string; to?: string };
  * emphasis. The shell keeps the breadcrumb; the page keeps the title.
  */
 export const PageHeader = ({
-  title, description, actions, meta, icon,
+  title, description, actions, meta, icon, mark,
 }: {
   title: string;
   description?: string;
@@ -151,45 +153,55 @@ export const PageHeader = ({
   /** A row of small facts under the description (counts, last-updated). */
   meta?: ReactNode;
   icon?: DomainIconName;
-}) => (
-  /*
-   * Below sm the title and its actions stack instead of sharing a row.
-   * Sharing one meant the actions took their content width and the title —
-   * which is min-w-0 and truncates — lost whatever was left: "Vendor Risk"
-   * rendered as "Ven…" at 390px with Refresh and New vendor beside it.
+  /**
+   * The page's 3D anchor. Defaults to the render of `icon`; pass it only when
+   * the page's concept has no domain glyph of its own (Policies).
    */
-  /*
-   * Chronos in-page header: a full-bleed band under the top bar, closed by a
-   * hairline. The negative margins cancel <main>'s padding so the rule runs
-   * edge to edge; the page's own spacing resumes below it.
-   */
-  <div className="-mx-3 -mt-3 flex flex-col gap-3 border-b border-muted px-3 py-4 sm:-mx-5 sm:-mt-5 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-6 sm:gap-y-3 sm:px-5">
-    <div className="min-w-0 flex-1">
-      <div className="flex items-center gap-2.5">
-        {icon && (
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-mark text-brand-mark">
-            <DomainIcon name={icon} size={18} />
-          </span>
+  mark?: Icon3DName;
+}) => {
+  const art = mark ?? (icon ? DOMAIN_TO_3D[icon] : undefined);
+  const puck = icon ? (
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-mark text-brand-mark">
+      <DomainIcon name={icon} size={18} />
+    </span>
+  ) : null;
+  return (
+    /*
+     * Below sm the title and its actions stack instead of sharing a row.
+     * Sharing one meant the actions took their content width and the title —
+     * which is min-w-0 and truncates — lost whatever was left: "Vendor Risk"
+     * rendered as "Ven…" at 390px with Refresh and New vendor beside it.
+     */
+    /*
+     * Chronos in-page header: a full-bleed band under the top bar, closed by a
+     * hairline. The negative margins cancel <main>'s padding so the rule runs
+     * edge to edge; the page's own spacing resumes below it.
+     */
+    <div className="-mx-3 -mt-3 flex flex-col gap-3 border-b border-muted px-3 py-4 sm:-mx-5 sm:-mt-5 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-6 sm:gap-y-3 sm:px-5">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-3">
+          {/* One 3D anchor per page, as Chronos does; line art if it fails. */}
+          {art ? <Drishti3DIcon name={art} size="md" eager fallback={puck} /> : puck}
+          <h1 className="font-display text-display-lg text-primary sm:truncate sm:text-display-xl">{title}</h1>
+        </div>
+        {description && (
+          <p className="mt-1 max-w-[70ch] text-body-md text-tertiary">{description}</p>
         )}
-        <h1 className="font-display text-display-lg text-primary sm:truncate sm:text-display-xl">{title}</h1>
+        {meta && <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">{meta}</div>}
       </div>
-      {description && (
-        <p className="mt-1 max-w-[70ch] text-body-md text-tertiary">{description}</p>
+      {actions && (
+        /*
+         * flex-shrink-0 keeps the controls at their natural size when there is
+         * room, which is what a desktop header wants. Below sm it has to go:
+         * it stopped the row shrinking to the viewport, so the row could never
+         * wrap internally and simply overflowed instead — on PHI Flow that put
+         * Export entirely off-screen and cut "Rescan" in half at 390px.
+         */
+        <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0">{actions}</div>
       )}
-      {meta && <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">{meta}</div>}
     </div>
-    {actions && (
-      /*
-       * flex-shrink-0 keeps the controls at their natural size when there is
-       * room, which is what a desktop header wants. Below sm it has to go:
-       * it stopped the row shrinking to the viewport, so the row could never
-       * wrap internally and simply overflowed instead — on PHI Flow that put
-       * Export entirely off-screen and cut "Rescan" in half at 390px.
-       */
-      <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0">{actions}</div>
-    )}
-  </div>
-);
+  );
+};
 
 /* ------------------------------------------------------------ metric card */
 
@@ -209,13 +221,19 @@ const TONE_FIGURE: Record<Tone, string> = {
  * reassuring thing this product can say and it must never be said by accident.
  */
 export const MetricCard = ({
-  label, value, sub, icon, domainIcon, tone = "muted", onClick, loading, emphasis,
+  label, value, sub, icon, domainIcon, art, tone = "muted", onClick, loading, emphasis,
 }: {
   label: string;
   value: number | string | undefined;
   sub?: ReactNode;
   icon?: IconName;
   domainIcon?: DomainIconName;
+  /**
+   * A 3D render in place of the line mark. For a page's lead metrics only —
+   * the dashboard's headline row — so the art marks what matters most rather
+   * than wallpapering every tile.
+   */
+  art?: Icon3DName;
   tone?: Tone;
   onClick?: () => void;
   loading?: boolean;
@@ -241,7 +259,15 @@ export const MetricCard = ({
     >
       <div className="flex items-start justify-between gap-2">
         <span className="truncate text-caption uppercase tracking-[0.08em] text-quaternary">{label}</span>
-        {domainIcon ? (
+        {art ? (
+          <Drishti3DIcon
+            name={art}
+            size="md"
+            eager
+            className="-my-1"
+            fallback={domainIcon ? <DomainIcon name={domainIcon} size={15} className="text-brand-mark" /> : null}
+          />
+        ) : domainIcon ? (
           <span aria-hidden className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-mark text-brand-mark">
             <DomainIcon name={domainIcon} size={15} />
           </span>
@@ -421,13 +447,17 @@ export const EntityAvatar = ({
   const glyph = { sm: 14, md: 18, lg: 22 }[size];
   const family = tone === "danger" ? "error" : tone === "muted" ? "neutral" : tone;
   return (
+    /*
+     * Solid block, white glyph: the solid-* fills are the deep steps chosen
+     * for white labels (>= 4.5:1 in both themes), so the mark reads as a
+     * definite object rather than a pale tint that fades into the row.
+     */
     <span
       aria-hidden
-      className={cn("inline-flex items-center justify-center rounded-lg border", box)}
+      className={cn("inline-flex shrink-0 items-center justify-center rounded-lg", box)}
       style={{
-        background: `var(--sem-feedback-${family}-background)`,
-        borderColor: `var(--sem-feedback-${family}-stroke)`,
-        color: `var(--sem-feedback-${family}-icon)`,
+        background: `var(--sem-solid-${family})`,
+        color: `var(--sem-solid-${family}-content)`,
       }}
     >
       <DomainIcon name={icon} size={glyph} />

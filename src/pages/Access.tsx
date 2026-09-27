@@ -228,6 +228,7 @@ export default function Access() {
           isRowActive={g => g.id === openId}
           searchPlaceholder="Search identity or system…"
           emptyIcon="identity"
+          emptyArt="emptyAccess"
           emptyTitle="No access grants"
           emptyMessage="No grants were returned for the current filters."
           toolbar={

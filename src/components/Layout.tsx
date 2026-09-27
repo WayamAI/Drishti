@@ -126,9 +126,13 @@ export default function Layout({ children }: { children: ReactNode }) {
     [user?.role],
   );
 
-  const activeGroup = visibleNav.find(g =>
-    g.items.some(i => (i.end ? loc.pathname === i.to : loc.pathname.startsWith(i.to))),
-  );
+  /*
+   * Where you are in the menu. Looked up in the full NAV, not the role-filtered
+   * one, so an admin-only page still names itself if someone lands on it.
+   */
+  const isActive = (i: SidebarNavItem) => (i.end ? loc.pathname === i.to : loc.pathname.startsWith(i.to));
+  const activeGroup = NAV.find(g => g.items.some(isActive));
+  const activeItem = activeGroup?.items.find(isActive);
 
   const [notifOpen, setNotifOpen] = useState(false);
 
@@ -270,7 +274,13 @@ export default function Layout({ children }: { children: ReactNode }) {
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
   const displayName = user?.name ?? "Signed in";
   const initials = displayName.split(" ").filter(Boolean).map(p => p[0]).slice(0, 2).join("").toUpperCase();
-  const pageTitle = PAGE_TITLES[loc.pathname] ?? "Drishti";
+  /*
+   * The top bar says where you are — the menu label ("Monitor · Threats") —
+   * and the page header says what the page is ("Threat & Anomaly
+   * Detection"). Printing the page title in both put the same words twice,
+   * sixty pixels apart, on every screen. Chronos splits them the same way.
+   */
+  const crumbLabel = activeItem?.label ?? PAGE_TITLES[loc.pathname] ?? "Drishti";
 
   return (
     <div className="flex h-screen overflow-hidden bg-page text-secondary">
@@ -402,7 +412,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   </li>
                 )}
                 <li className="truncate font-display text-display-base text-primary sm:text-display-lg" aria-current="page">
-                  {pageTitle}
+                  {crumbLabel}
                 </li>
               </ol>
             </nav>

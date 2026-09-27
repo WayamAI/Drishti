@@ -36,7 +36,7 @@ export default function Users() {
       sortValue: i => i.displayName,
       cell: i => (
         <div className="flex items-center gap-2.5">
-          <EntityAvatar icon="identity" tone={i.active ? "muted" : "danger"} size="sm" />
+          <EntityAvatar icon="identity" tone="muted" size="sm" />
           <div className="min-w-0">
             <div className={`truncate text-body-md text-primary ${!i.active ? "line-through opacity-70" : ""}`}>
               {i.displayName}

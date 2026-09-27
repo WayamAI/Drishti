@@ -90,7 +90,7 @@ export default function Vendors() {
       searchValue: v => v.name,
       cell: v => (
         <div className="flex items-center gap-2.5">
-          <EntityAvatar icon="vendor" tone={v.risk ? BAND_TONE[v.risk.band] : "muted"} size="sm" />
+          <EntityAvatar icon="vendor" tone="muted" size="sm" />
           <div className="min-w-0">
             <div className="truncate text-body-md text-primary" data-testid="vendor-row-name">{v.name}</div>
             <div className="text-caption text-tertiary">
@@ -231,6 +231,7 @@ export default function Vendors() {
           initialSort={{ columnId: "score", direction: "desc" }}
           searchPlaceholder="Search vendors…"
           emptyIcon="facility"
+          emptyArt="emptyVendors"
           emptyTitle="No vendors recorded"
           emptyMessage="Import a vendor CSV from Data Import, or create one directly."
           toolbar={

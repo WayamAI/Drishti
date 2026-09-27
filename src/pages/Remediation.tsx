@@ -140,7 +140,7 @@ export default function Remediation() {
       header: "Severity",
       width: "w-28",
       sortValue: r => SEVERITIES.length - SEVERITIES.indexOf(r.severity),
-      cell: r => <Badge tone={SEVERITY_TONE[r.severity]}>{r.severity}</Badge>,
+      cell: r => <Badge sentence tone={SEVERITY_TONE[r.severity]}>{r.severity}</Badge>,
     },
     {
       id: "title",
@@ -148,7 +148,7 @@ export default function Remediation() {
       sortValue: r => r.title,
       cell: r => (
         <div className="flex items-center gap-2.5">
-          <EntityAvatar icon="remediation" tone={SEVERITY_TONE[r.severity]} size="sm" />
+          <EntityAvatar icon="remediation" tone="muted" size="sm" />
           <div className="min-w-0">
             <div className="truncate text-body-md text-primary">{r.title}</div>
             <div className="truncate text-caption text-tertiary">
@@ -183,7 +183,7 @@ export default function Remediation() {
       id: "status",
       header: "Status",
       sortValue: r => r.status,
-      cell: r => <Badge tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</Badge>,
+      cell: r => <Badge variant="soft" tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</Badge>,
     },
   ];
 
@@ -267,6 +267,7 @@ export default function Remediation() {
           isRowActive={r => r.id === openId}
           searchPlaceholder="Search findings…"
           emptyIcon="remediation"
+          emptyArt="emptyRemediation"
           emptyTitle="No findings recorded"
           emptyMessage={
             canWrite
@@ -363,8 +364,8 @@ function RemediationDrawer({
             <EntityAvatar icon="remediation" tone={SEVERITY_TONE[r.severity]} size="lg" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge tone={SEVERITY_TONE[r.severity]}>{r.severity}</Badge>
-                <Badge tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</Badge>
+                <Badge sentence tone={SEVERITY_TONE[r.severity]}>{r.severity}</Badge>
+                <Badge variant="soft" tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</Badge>
                 {r.overdue && <Badge tone="danger">Overdue</Badge>}
               </div>
               <p className="mt-1.5 text-body-sm text-tertiary">

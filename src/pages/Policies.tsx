@@ -63,7 +63,7 @@ export default function Policies() {
       sortValue: p => p.name,
       cell: p => (
         <div className="flex items-center gap-2.5">
-          <EntityAvatar icon="audit" tone={STATUS_TONE[p.status]} size="sm" />
+          <EntityAvatar icon="audit" tone="muted" size="sm" />
           <div className="min-w-0">
             <div className="truncate text-body-md text-primary">{p.name}</div>
             <div className="truncate text-caption text-tertiary">
@@ -104,6 +104,7 @@ export default function Policies() {
     <div className="space-y-4">
       <PageHeader
         icon="audit"
+        mark="policy"
         title="Policies"
         description="Written policy, who owns it, and when it is next due for review."
         actions={

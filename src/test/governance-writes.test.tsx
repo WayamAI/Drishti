@@ -261,7 +261,8 @@ describe("empty states wear their own mark", () => {
     // DataState hardcoded the database glyph for every empty view, so a page
     // built around its own domain mark lost it exactly when it mattered.
     await screen.findByText("No controls recorded");
-    expect(document.querySelector('[data-icon="locked"]')).not.toBeNull();
+    // The page's own mark is now its 3D render in the empty condition.
+    expect(document.querySelector('[data-icon-3d="emptyControls"]')).not.toBeNull();
     expect(document.querySelector('[data-icon="database"]')).toBeNull();
   });
 });

@@ -1,5 +1,7 @@
 import { ReactNode, useEffect } from "react";
 import { AppIcon } from "@/components/AppIcon";
+import { Drishti3DIcon } from "@/components/Drishti3DIcon";
+import type { Icon3DName } from "@/lib/icons3d";
 import { IconButton } from "@/components/IconButton";
 import type { IconName } from "@/lib/icons";
 import { cn } from "@/lib/utils";
@@ -64,11 +66,24 @@ const TONE_SOFT: Record<Tone, string> = {
 };
 
 export const Badge = ({
-  tone = "muted", variant = "solid", children, className = "",
-}: { tone?: Tone; variant?: "solid" | "soft"; children: ReactNode; className?: string }) => (
+  tone = "muted", variant = "solid", sentence = false, children, className = "",
+}: {
+  tone?: Tone;
+  variant?: "solid" | "soft";
+  /**
+   * Show an API enum ("CRITICAL") in sentence case ("Critical"), matching the
+   * band badges. Done in CSS so the text node stays the API's word for copy,
+   * search and assistive tech; inline-block because ::first-letter does not
+   * apply to flex containers.
+   */
+  sentence?: boolean;
+  children: ReactNode;
+  className?: string;
+}) => (
   <span
     className={cn(
-      "inline-flex max-w-full items-center truncate rounded-full px-2.5 py-0.5 text-caption font-medium",
+      "max-w-full truncate rounded-full px-2.5 py-0.5 text-caption font-medium",
+      sentence ? "inline-block align-middle lowercase first-letter:uppercase" : "inline-flex items-center",
       variant === "soft" ? TONE_SOFT[tone] : TONE_BADGE[tone],
       className,
     )}
@@ -367,61 +382,81 @@ export const ErrorState = ({
   onRetry,
   isRetrying,
   height,
+  art,
 }: {
   title?: string;
   message?: string;
   onRetry?: () => void;
   isRetrying?: boolean;
   height?: number;
-}) => (
-  <div
-    role="alert"
-    className="flex w-full flex-col items-center justify-center gap-3 rounded-lg p-8 text-center"
-    style={height ? { minHeight: height } : undefined}
-  >
+  /**
+   * A 3D mark for an error that is a *state*, not a fault — an expired
+   * session happens to everyone and a red warning overstates it. A real
+   * failure keeps the red mark, because there the alarm is the point.
+   */
+  art?: Icon3DName;
+}) => {
+  const alarm = (
     <span className="flex h-10 w-10 items-center justify-center rounded-full bg-feedback-error-background">
       <AppIcon name="warning" size="lg" className="text-feedback-error-icon" />
     </span>
-    <div>
-      <div className="text-heading-sm text-primary">{title ?? "Could not load this data"}</div>
-      {message && <p className="mt-1 max-w-md text-body-sm text-tertiary">{message}</p>}
+  );
+  return (
+    <div
+      role="alert"
+      className="flex w-full flex-col items-center justify-center gap-3 rounded-lg p-8 text-center"
+      style={height ? { minHeight: height } : undefined}
+    >
+      {art ? <Drishti3DIcon name={art} size="xl" fallback={alarm} /> : alarm}
+      <div>
+        <div className="text-heading-sm text-primary">{title ?? "Could not load this data"}</div>
+        {message && <p className="mt-1 max-w-md text-body-sm text-tertiary">{message}</p>}
+      </div>
+      {onRetry && (
+        <Btn variant="outline" onClick={onRetry} disabled={isRetrying}>
+          {isRetrying ? "Retrying…" : "Retry"}
+        </Btn>
+      )}
     </div>
-    {onRetry && (
-      <Btn variant="outline" onClick={onRetry} disabled={isRetrying}>
-        {isRetrying ? "Retrying…" : "Retry"}
-      </Btn>
-    )}
-  </div>
-);
+  );
+};
 
 /** Request succeeded, there is simply nothing to draw. Not an error. */
 export const EmptyState = ({
   icon = "info",
+  art,
   title,
   message,
   action,
   height,
 }: {
   icon?: IconName;
+  /** The page's own 3D mark in its empty condition, e.g. `emptyThreats`. */
+  art?: Icon3DName;
   title: string;
   message?: string;
   action?: ReactNode;
   height?: number;
-}) => (
-  <div
-    className="flex w-full flex-col items-center justify-center gap-3 rounded-lg p-8 text-center"
-    style={height ? { minHeight: height } : undefined}
-  >
+}) => {
+  const glyph = (
     <span className="flex h-10 w-10 items-center justify-center rounded-full bg-action">
       <AppIcon name={icon} size="lg" className="text-icon-tertiary" />
     </span>
-    <div>
-      <div className="text-heading-sm text-primary">{title}</div>
-      {message && <p className="mt-1 max-w-md text-body-sm text-tertiary">{message}</p>}
+  );
+  return (
+    <div
+      className="flex w-full flex-col items-center justify-center gap-3 rounded-lg p-8 text-center"
+      style={height ? { minHeight: height } : undefined}
+    >
+      {art ? <Drishti3DIcon name={art} size="xl" fallback={glyph} /> : glyph}
+      <div>
+        <div className="text-heading-sm text-primary">{title}</div>
+        {message && <p className="mt-1 max-w-md text-body-sm text-tertiary">{message}</p>}
+      </div>
+      {action}
     </div>
-    {action}
-  </div>
-);
+  );
+};
 
 /**
  * Holds a headline banner's footprint while the data behind it loads.
