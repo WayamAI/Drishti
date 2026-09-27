@@ -1,0 +1,6 @@
+identityName,assetName,level,grantedAt,lastUsedAt
+Dr. Lena Ortiz,Oncology EHR Module,READ,2026-09-07,2026-09-26
+Samuel Adeyemi,Radiation Therapy Planning,ADMIN,2026-08-28,2026-09-24
+Priya Raman,Infusion Pump Gateway,WRITE,2026-03-11,2026-05-10
+Tomas Brandt (contractor),Oncology EHR Module,WRITE,2026-09-02,2026-09-17
+svc-analytics-sync,Oncology Research Registry,ADMIN,2026-09-01,

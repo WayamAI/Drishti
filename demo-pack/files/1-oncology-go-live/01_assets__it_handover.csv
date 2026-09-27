@@ -1,0 +1,5 @@
+name,type,phiVolume,encrypted,mfaEnabled,lastAssessedAt
+Oncology EHR Module,EHR,128000,true,true,2026-09-20
+Radiation Therapy Planning,OTHER,41500,true,false,2026-08-18
+Infusion Pump Gateway,API,9800,false,false,
+Oncology Research Registry,DATABASE,64000,false,false,

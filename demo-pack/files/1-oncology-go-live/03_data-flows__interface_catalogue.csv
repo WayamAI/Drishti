@@ -1,0 +1,7 @@
+sourceAssetName,targetAssetName,phiTypeName,recordsPerDay,encrypted
+Cardiology EHR,Oncology EHR Module,Demographics,3200,true
+Oncology EHR Module,Radiation Therapy Planning,Oncology Treatment Plans,1400,true
+Infusion Pump Gateway,Oncology EHR Module,Medication Administration,6800,false
+Oncology EHR Module,Billing Database,Billing & Claims,2900,false
+Oncology EHR Module,Oncology Research Registry,Clinical Notes,1100,false
+Oncology Research Registry,Analytics Warehouse,Oncology Treatment Plans,900,true
