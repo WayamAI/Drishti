@@ -16,8 +16,9 @@
  * policy — see `Drishti3DIcon` for how one gets rendered.
  *
  * Assets are produced by `scripts/build-3d-icons.mjs` from the 2K originals
- * in `3D Icons/` — both live on the `feat/ui-overhaul` branch, which is where
- * to regenerate them; only the built output is carried here. They land in
+ * in `3D Icons/` — both are kept under the `archive/feat-ui-overhaul` tag
+ * (`git checkout archive/feat-ui-overhaul -- "3D Icons" scripts`); only the
+ * built output is carried here. They land in
  * `public/brand/icons-3d/`, served from `public/` rather than imported so they
  * stay out of the JS bundle and are cached by URL (see vercel.json).
  *

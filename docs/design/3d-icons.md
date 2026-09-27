@@ -325,6 +325,10 @@ from one rig; if one is off, rerun the set.
 
 ## 5. Getting them into the app
 
+The source folder and build script are not on `main`; they are kept under the
+`archive/feat-ui-overhaul` tag. Bring them into a working copy first:
+`git checkout archive/feat-ui-overhaul -- "3D Icons" scripts`.
+
 1. Save each keeper as `3D Icons/<slug>.jpg` (the slug is the bold name above).
 2. Add one line per slug to `MAP` in `scripts/build-3d-icons.mjs`
    (`noMfa: "noMfa.jpg",`) and the slug to `ICON_3D_NAMES` in
