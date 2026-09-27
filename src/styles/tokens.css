@@ -434,18 +434,44 @@
 /* ---------------------------------------------------------------------------
    RISK BANDS
 
-   Five bands need five fills; borrowing the 4-step severity scale is what
-   made two bands share a colour. One escalating ramp from the Chronos
-   palette, deep enough for a white label on every step, and the same in
-   both themes so a band is one learnable colour everywhere.
+   Five ordered bands, one fill each. Computed, not eyeballed: every pair of
+   neighbours is validated for separation (dataviz validate_palette.js) —
+   light: deutan ΔE >= 13.7, normal >= 20.1; dark: >= 10.8 / >= 16.4. The
+   previous ramp put High and Critical 5.7 apart, too close to tell even
+   with full colour vision, and Moderate/High 2.4 apart for deuteranopes.
+
+   From Moderate up the fills step darker, so severity reads by lightness as
+   well as hue. The light fills fail 3:1 against the page, so a band is never
+   shown by colour alone: every mark carries its label or count, and the
+   pale fills get a hairline. Each fill has its own text colour, chosen for
+   >= 4.5:1. Dark mode has its own steps from the same ramps (a flip would
+   sink Extreme into the page), validated against the dark surface.
    -------------------------------------------------------------------------- */
 :root {
-  --sem-band-extreme: var(--ref-red-900);
+  --sem-band-extreme: var(--ref-red-950);
   --sem-band-critical: var(--ref-red-700);
-  --sem-band-high: var(--ref-orange-700);
-  --sem-band-moderate: var(--ref-yellow-700);
+  --sem-band-high: var(--ref-orange-500);
+  --sem-band-moderate: var(--ref-yellow-400);
   --sem-band-low: var(--ref-green-700);
-  --sem-band-content: var(--ref-white);
+
+  --sem-band-extreme-content: var(--ref-white);
+  --sem-band-critical-content: var(--ref-white);
+  --sem-band-high-content: var(--ref-gray-950);
+  --sem-band-moderate-content: var(--ref-gray-950);
+  --sem-band-low-content: var(--ref-white);
+}
+.dark {
+  --sem-band-extreme: var(--ref-red-800);
+  --sem-band-critical: var(--ref-red-500);
+  --sem-band-high: var(--ref-orange-400);
+  --sem-band-moderate: var(--ref-amber-200);
+  --sem-band-low: var(--ref-green-600);
+
+  --sem-band-extreme-content: var(--ref-white);
+  --sem-band-critical-content: var(--ref-gray-950);
+  --sem-band-high-content: var(--ref-gray-950);
+  --sem-band-moderate-content: var(--ref-gray-950);
+  --sem-band-low-content: var(--ref-gray-950);
 }
 
 /* ---------------------------------------------------------------------------

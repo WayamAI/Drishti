@@ -97,7 +97,7 @@ const risk = (over: Partial<ApiRisk>): ApiRisk => ({
 describe("toMatrixRisks", () => {
   it("maps the wire shape onto the matrix's prop names", () => {
     expect(toMatrixRisks([risk({})])[0]).toEqual({
-      id: "R-001", name: "Billing Engine DB", L: 4, I: 5, band: "extreme",
+      id: "R-001", name: "Billing Engine DB", L: 4, I: 5, band: "extreme", score: 100,
     });
   });
 

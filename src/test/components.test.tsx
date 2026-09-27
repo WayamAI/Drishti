@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { PhiSankey } from "@/components/PhiSankey";
 import { RiskMatrix } from "@/components/RiskMatrix";
 import { ChartSkeleton, ErrorState, EmptyState } from "@/components/ui-bits";
@@ -61,12 +61,42 @@ describe("PhiSankey fed by mapper output", () => {
 });
 
 describe("RiskMatrix fed by mapper output", () => {
-  it("plots each risk and spreads them across more than one band", () => {
+  it("names every scored asset without needing a hover", () => {
     render(<RiskMatrix risks={toMatrixRisks(RISKS)} onSelect={vi.fn()} />);
-    ["001", "005", "011", "012"].forEach(id => expect(screen.getByText(id)).toBeInTheDocument());
-    // Legend counts prove the spread: not every risk landed in one band.
-    expect(screen.getByText("Critical")).toBeInTheDocument();
-    expect(screen.getByText("Low")).toBeInTheDocument();
+    ["Billing Engine DB", "Clinical Analytics Lake", "Pharmacy System", "Patient Portal"]
+      .forEach(name => expect(screen.getAllByText(name).length).toBeGreaterThan(0));
+    // One dot per asset in the grid, each carrying its own band.
+    const dots = screen.getAllByTestId("band-dot").map(d => d.getAttribute("data-band"));
+    expect(dots.sort()).toEqual(["extreme", "low", "low", "moderate"]);
+  });
+
+  it("lists the worst asset first", () => {
+    render(<RiskMatrix risks={toMatrixRisks(RISKS)} onSelect={vi.fn()} />);
+    const pills = screen.getAllByTestId("band-pill").map(p => p.getAttribute("data-band"));
+    expect(pills[0]).toBe("extreme");
+    expect(pills.at(-1)).toBe("low");
+  });
+
+  it("narrows the list to a square when it is selected, and back", () => {
+    render(<RiskMatrix risks={toMatrixRisks(RISKS)} onSelect={vi.fn()} />);
+    fireEvent.click(screen.getByTestId("matrix-cell-3-3"));
+    expect(screen.getByTestId("matrix-list-title")).toHaveTextContent("Possible · Moderate");
+    expect(screen.getAllByTestId("band-pill")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Show all" }));
+    expect(screen.getAllByTestId("band-pill")).toHaveLength(4);
+  });
+
+  it("opens a record from the list", () => {
+    const onSelect = vi.fn();
+    render(<RiskMatrix risks={toMatrixRisks(RISKS)} onSelect={onSelect} />);
+    fireEvent.click(screen.getAllByText("Billing Engine DB").at(-1)!.closest("button")!);
+    expect(onSelect).toHaveBeenCalledWith("R-001");
+  });
+
+  it("gives each occupied square a spoken summary", () => {
+    render(<RiskMatrix risks={toMatrixRisks(RISKS)} onSelect={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Almost certain likelihood, Catastrophic impact: 1 asset, worst Extreme" }))
+      .toBeInTheDocument();
   });
 
   it("renders an empty grid without crashing when there are no risks", () => {
@@ -108,7 +138,7 @@ describe("risk band colour ramp", () => {
     const { container } = render(
       <RiskMatrix risks={toMatrixRisks([mkRisk(1, "Asset", 3, 3, band)])} onSelect={vi.fn()} />,
     );
-    return container.querySelector("button")?.className ?? "";
+    return container.querySelector('[data-testid="band-dot"]')?.className ?? "";
   };
 
   it("escalates Low -> Moderate -> High -> Critical -> Extreme", () => {

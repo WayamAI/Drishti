@@ -35,12 +35,13 @@ export const BAND_TONE: Record<RiskBand, Tone> = {
   LOW: "success",
 };
 
+/** Fill plus the text colour computed for it (each >= 4.5:1, see tokens.css). */
 const BAND_FILL_CLASS: Record<RiskBand, string> = {
-  EXTREME: "bg-band-extreme",
-  CRITICAL: "bg-band-critical",
-  HIGH: "bg-band-high",
-  MODERATE: "bg-band-moderate",
-  LOW: "bg-band-low",
+  EXTREME: "bg-band-extreme text-on-band-extreme",
+  CRITICAL: "bg-band-critical text-on-band-critical",
+  HIGH: "bg-band-high text-on-band-high",
+  MODERATE: "bg-band-moderate text-on-band-moderate",
+  LOW: "bg-band-low text-on-band-low",
 };
 
 /** Worst first — the order every band summary and sort uses. */
@@ -85,7 +86,7 @@ export const RiskBadge = ({ band, className }: { band: RiskBand | null; classNam
         // inline-block, not flex: ::first-letter only applies to block
         // containers, and sentence case is done in CSS so the text node stays
         // the API's band for search, copy and assistive tech.
-        "inline-block max-w-full truncate rounded-full px-2.5 py-0.5 align-middle text-caption font-medium lowercase text-band-content first-letter:uppercase",
+        "inline-block max-w-full truncate rounded-full px-2.5 py-0.5 align-middle text-caption font-medium lowercase ring-1 ring-inset ring-black/10 first-letter:uppercase",
         BAND_FILL_CLASS[band],
         className,
       )}

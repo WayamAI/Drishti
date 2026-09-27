@@ -133,5 +133,6 @@ export function toMatrixRisks(risks: ApiRisk[]): MatrixRisk[] {
     L: clamp15(r.likelihood),
     I: clamp15(r.impact),
     band: (typeof r.band === "string" ? r.band.toLowerCase() : undefined) as MatrixRisk["band"],
+    score: Number.isFinite(r.score) ? r.score : undefined,
   }));
 }

@@ -155,7 +155,13 @@ export default {
           high: sem("band-high"),
           moderate: sem("band-moderate"),
           low: sem("band-low"),
-          content: sem("band-content"),
+        },
+        "on-band": {
+          extreme: sem("band-extreme-content"),
+          critical: sem("band-critical-content"),
+          high: sem("band-high-content"),
+          moderate: sem("band-moderate-content"),
+          low: sem("band-low-content"),
         },
         severity: {
           critical: sem("severity-critical"),

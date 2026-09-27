@@ -152,7 +152,7 @@ export default function Risks() {
       <Card className="p-4">
         <SectionHeader
           title="Risk Matrix"
-          subtitle="Every scored asset plotted by likelihood and impact. Colour is the band the API derived — select a chip to open its record."
+          subtitle="Where risk concentrates. Select a square to list its assets, then an asset to open its record."
         />
         <DataState
           query={listAsQuery(matrix)}
@@ -164,6 +164,8 @@ export default function Risks() {
           {() => (
             <RiskMatrix
               risks={matrixRisks}
+              layout="side"
+              highlightId={openId != null ? `R-${String(openId).padStart(3, "0")}` : null}
               onSelect={id => {
                 const numeric = Number(String(id).replace(/^R-0*/, ""));
                 if (Number.isFinite(numeric)) openRisk(numeric);

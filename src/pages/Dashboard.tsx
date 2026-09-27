@@ -364,7 +364,7 @@ export default function Dashboard() {
         <Card className={isAdmin ? "p-4 xl:col-span-2" : "p-4"}>
           <SectionHeader
             title="Risk Matrix"
-            subtitle="Every scored asset by likelihood and impact. Colour is the band the API derived."
+            subtitle="Where risk concentrates. Select a square to list its assets."
             action={
               <Btn variant="outline" onClick={() => navigate("/risks")}>
                 Open register
@@ -378,7 +378,14 @@ export default function Dashboard() {
             emptyTitle="No scored assets"
             emptyMessage="Import assets and run a risk assessment to populate the matrix."
           >
-            {data => <RiskMatrix risks={data} onSelect={id => navigate(`/risks?open=${String(id).replace(/^R-0*/, "")}`)} />}
+            {data => (
+              <RiskMatrix
+                risks={data}
+                layout="stacked"
+                listLimit={5}
+                onSelect={id => navigate(`/risks?open=${String(id).replace(/^R-0*/, "")}`)}
+              />
+            )}
           </DataState>
         </Card>
         {isAdmin && <RecentActivity enabled={isAdmin} />}

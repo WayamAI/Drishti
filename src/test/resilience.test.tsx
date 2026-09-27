@@ -201,8 +201,8 @@ describe("empty and malformed payloads", () => {
       { id: 99, assetName: "Broken Asset", likelihood: null, impact: "high", band: null },
     ] };
     render(<MatrixView />, { wrapper });
-    // Chip label is the zero-padded id; a null likelihood must not crash the grid.
-    await waitFor(() => expect(screen.getByText("099")).toBeInTheDocument());
+    // The asset is listed by name; a null likelihood must not crash the grid.
+    await waitFor(() => expect(screen.getAllByText("Broken Asset").length).toBeGreaterThan(0));
   });
 });
 
@@ -285,7 +285,7 @@ describe("backend killed mid-session", () => {
      */
     scenario = { kind: "ok", body: RISKS };
     render(<MatrixView />, { wrapper });
-    await waitFor(() => expect(screen.getByText("001")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText("Billing Engine DB").length).toBeGreaterThan(0));
 
     scenario = { kind: "status", code: 401 };
     await waitFor(() => expect(screen.getByText("Session expired")).toBeInTheDocument(), { timeout: 3000 });
@@ -295,7 +295,7 @@ describe("backend killed mid-session", () => {
   it("stops polling once the session is the problem", async () => {
     scenario = { kind: "ok", body: RISKS };
     render(<MatrixView />, { wrapper });
-    await waitFor(() => expect(screen.getByText("001")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText("Billing Engine DB").length).toBeGreaterThan(0));
 
     scenario = { kind: "status", code: 401 };
     const before = callCount;
