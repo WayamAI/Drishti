@@ -67,11 +67,11 @@ const BAND_FILL: Record<Band, string> = {
 };
 
 const BAND_PILL: Record<Band, string> = {
-  low: "bg-band-low text-on-band-low",
-  moderate: "bg-band-moderate text-on-band-moderate",
-  high: "bg-band-high text-on-band-high",
-  critical: "bg-band-critical text-on-band-critical",
-  extreme: "bg-band-extreme text-on-band-extreme",
+  low: "bg-band-badge-low text-band-badge-content",
+  moderate: "bg-band-badge-moderate text-band-badge-content",
+  high: "bg-band-badge-high text-band-badge-content",
+  critical: "bg-band-badge-critical text-band-badge-content",
+  extreme: "bg-band-badge-extreme text-band-badge-content",
 };
 
 /**
@@ -363,7 +363,7 @@ export function RiskMatrix({
                     data-testid="band-pill"
                     data-band={b}
                     className={cn(
-                      "w-[4.25rem] shrink-0 rounded-full py-0.5 text-center text-caption font-medium ring-1 ring-inset ring-black/10",
+                      "w-[4.25rem] shrink-0 rounded-full py-0.5 text-center text-caption font-medium dark:ring-1 dark:ring-inset dark:ring-white/15",
                       BAND_PILL[b],
                     )}
                   >

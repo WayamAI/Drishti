@@ -156,12 +156,13 @@ export default {
           moderate: sem("band-moderate"),
           low: sem("band-low"),
         },
-        "on-band": {
-          extreme: sem("band-extreme-content"),
-          critical: sem("band-critical-content"),
-          high: sem("band-high-content"),
-          moderate: sem("band-moderate-content"),
-          low: sem("band-low-content"),
+        "band-badge": {
+          extreme: sem("band-extreme-badge"),
+          critical: sem("band-critical-badge"),
+          high: sem("band-high-badge"),
+          moderate: sem("band-moderate-badge"),
+          low: sem("band-low-badge"),
+          content: sem("band-badge-content"),
         },
         severity: {
           critical: sem("severity-critical"),

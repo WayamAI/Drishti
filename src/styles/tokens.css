@@ -454,11 +454,22 @@
   --sem-band-moderate: var(--ref-yellow-400);
   --sem-band-low: var(--ref-green-700);
 
-  --sem-band-extreme-content: var(--ref-white);
-  --sem-band-critical-content: var(--ref-white);
-  --sem-band-high-content: var(--ref-gray-950);
-  --sem-band-moderate-content: var(--ref-gray-950);
-  --sem-band-low-content: var(--ref-white);
+  /*
+   * Badge fills. A badge carries its band as a printed word, and its label is
+   * white, so it takes the deep step of the same hue: every fill clears 4.5:1
+   * against white and 2.5:1 against the dark page, the same in both themes.
+   * Chosen by exhaustive search over the palette for the widest separation
+   * that allows. High/Critical end up 9.4 apart — below the 15 that colour
+   * alone needs — which is why these are for labelled pills only; unlabelled
+   * marks (dots, bars, swatches) keep the brighter, better-separated steps
+   * above.
+   */
+  --sem-band-extreme-badge: var(--ref-red-950);
+  --sem-band-critical-badge: var(--ref-red-800);
+  --sem-band-high-badge: var(--ref-orange-700);
+  --sem-band-moderate-badge: var(--ref-amber-800);
+  --sem-band-low-badge: var(--ref-green-700);
+  --sem-band-badge-content: var(--ref-white);
 }
 .dark {
   --sem-band-extreme: var(--ref-red-800);
@@ -467,11 +478,6 @@
   --sem-band-moderate: var(--ref-amber-200);
   --sem-band-low: var(--ref-green-600);
 
-  --sem-band-extreme-content: var(--ref-white);
-  --sem-band-critical-content: var(--ref-gray-950);
-  --sem-band-high-content: var(--ref-gray-950);
-  --sem-band-moderate-content: var(--ref-gray-950);
-  --sem-band-low-content: var(--ref-gray-950);
 }
 
 /* ---------------------------------------------------------------------------
