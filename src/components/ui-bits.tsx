@@ -50,11 +50,29 @@ const TONE_ICON: Record<Tone, string> = {
 };
 
 export const Card = ({ className = "", children }: { className?: string; children: ReactNode }) => (
-  <div className={cn("bg-raised border border-default rounded-card shadow-raised", className)}>{children}</div>
+  <div className={cn("bg-container border border-muted rounded-lg", className)}>{children}</div>
 );
 
-export const Badge = ({ tone = "muted", children, className = "" }: { tone?: Tone; children: ReactNode; className?: string }) => (
-  <span className={cn("inline-flex items-center rounded-md px-2 py-0.5 text-caption font-semibold", TONE_BADGE[tone], className)}>
+/** Tinted tag: for attributes and multi-tag cells, where a row of solid fills
+ *  would shout. Solid stays for the one status a row is about. */
+const TONE_SOFT: Record<Tone, string> = {
+  success: "bg-feedback-success-background text-feedback-success",
+  warning: "bg-feedback-warning-background text-feedback-warning",
+  danger: "bg-feedback-error-background text-feedback-error",
+  info: "bg-feedback-info-background text-feedback-info",
+  muted: "bg-feedback-neutral-background text-feedback-neutral",
+};
+
+export const Badge = ({
+  tone = "muted", variant = "solid", children, className = "",
+}: { tone?: Tone; variant?: "solid" | "soft"; children: ReactNode; className?: string }) => (
+  <span
+    className={cn(
+      "inline-flex max-w-full items-center truncate rounded-full px-2.5 py-0.5 text-caption font-medium",
+      variant === "soft" ? TONE_SOFT[tone] : TONE_BADGE[tone],
+      className,
+    )}
+  >
     {children}
   </span>
 );
@@ -63,7 +81,7 @@ export const Badge = ({ tone = "muted", children, className = "" }: { tone?: Ton
 export const SeverityBadge = ({ sev }: { sev: string }) => (
   <span
     className={cn(
-      "inline-flex items-center rounded-md px-2 py-0.5 text-caption font-semibold tracking-wide",
+      "inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-medium",
       SEVERITY_BADGE[sev] ?? "bg-solid-neutral text-on-solid-neutral",
     )}
   >
@@ -83,9 +101,10 @@ export const FilterChip = ({
     aria-pressed={selected}
     className={cn(
       "inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-label-sm transition-colors duration-200",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-active",
       selected
         ? "border-transparent bg-action-primary text-on-color"
-        : "border-default bg-action text-secondary hover:bg-action-secondary-hover hover:text-primary",
+        : "border-muted bg-action text-secondary hover:border-default hover:bg-raised-2 hover:text-primary",
       className,
     )}
   >
@@ -106,12 +125,14 @@ export function Modal({ open, onClose, title, children, size = "md", dismissOnBa
   if (!open) return null;
   const w = { sm: "max-w-md", md: "max-w-2xl", lg: "max-w-4xl", xl: "max-w-6xl" }[size];
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70" onClick={() => dismissOnBackdrop && onClose()} />
-      <div className={cn("relative flex max-h-[88vh] w-full flex-col rounded-card border border-default bg-raised shadow-panel fade-in", w)}>
+    // !m-0: overlays render inside space-y-* page wrappers, whose sibling
+    // margin would otherwise push a fixed layer 16px down the viewport.
+    <div className="fixed inset-0 z-50 !m-0 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={() => dismissOnBackdrop && onClose()} />
+      <div className={cn("relative flex max-h-[88vh] w-full flex-col rounded-lg border border-muted bg-container shadow-panel fade-in", w)}>
         {title && (
           <div className="flex items-center justify-between border-b border-muted px-5 py-4">
-            <h3 className="text-heading-md text-primary">{title}</h3>
+            <h3 className="font-display text-display-lg text-primary">{title}</h3>
             <IconButton icon="close" aria-label="Close dialog" size="sm" onClick={onClose} />
           </div>
         )}
@@ -134,14 +155,14 @@ export function SlideOver({ open, onClose, title, children, footer, width = 440 
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+    <div className="fixed inset-0 z-50 !m-0">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className="absolute right-0 top-0 flex h-full max-w-full flex-col border-l border-default bg-container slide-in-right"
+        className="absolute right-0 top-0 flex h-full max-w-full flex-col border-l border-muted bg-container shadow-panel slide-in-right"
         style={{ width }}
       >
-        <div className="flex items-center justify-between border-b border-muted px-5 py-4">
-          <h3 className="text-heading-md text-primary">{title}</h3>
+        <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-muted px-5">
+          <h3 className="min-w-0 truncate font-display text-display-lg text-primary">{title}</h3>
           <IconButton icon="close" aria-label="Close panel" size="sm" onClick={onClose} />
         </div>
         <div className="flex-1 overflow-y-auto p-5">{children}</div>
@@ -154,22 +175,23 @@ export function SlideOver({ open, onClose, title, children, footer, width = 440 
 type BtnVariant = "default" | "primary" | "danger" | "success" | "ghost" | "outline" | "warning" | "inverse";
 
 const BTN_VARIANT: Record<BtnVariant, string> = {
-  default: "bg-action-secondary text-action-secondary border border-default hover:bg-action-secondary-hover",
-  primary: "bg-brand text-primary-foreground hover:bg-brand-hover",
-  // `inverse` is the light-on-dark CTA used for a panel's primary action.
+  // Chronos button language: pills. The solid primary is the one action a
+  // panel is for; everything else is a quiet bordered pill.
+  default: "border border-muted bg-action text-secondary hover:border-default hover:bg-raised-2 hover:text-primary",
+  primary: "bg-action-primary text-on-color hover:bg-action-primary-hover",
   inverse: "bg-action-primary text-on-color hover:bg-action-primary-hover",
-  danger: "bg-feedback-error-background text-feedback-error border border-feedback-error-stroke hover:bg-feedback-error-stroke hover:text-primary",
-  success: "bg-feedback-success-background text-feedback-success border border-feedback-success-stroke hover:bg-feedback-success-stroke hover:text-primary",
-  warning: "bg-feedback-warning-background text-feedback-warning border border-feedback-warning-stroke hover:bg-feedback-warning-stroke hover:text-primary",
-  ghost: "bg-action-tertiary text-action-tertiary hover:bg-action-tertiary-hover hover:text-primary",
-  outline: "border border-default text-secondary hover:bg-action-secondary-hover hover:text-primary",
+  danger: "bg-solid-error text-on-solid-error hover:opacity-90",
+  success: "bg-solid-success text-on-solid-success hover:opacity-90",
+  warning: "bg-solid-warning text-on-solid-warning hover:opacity-90",
+  ghost: "text-tertiary hover:bg-action-tertiary-hover hover:text-primary",
+  outline: "border border-muted bg-action text-secondary hover:border-default hover:bg-raised-2 hover:text-primary",
 };
 
 export const Btn = ({ variant = "default", className = "", children, ...rest }: { variant?: BtnVariant } & React.ButtonHTMLAttributes<HTMLButtonElement>) => (
   <button
     className={cn(
-      "inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-label-sm transition-colors duration-200",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+      "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-label-sm transition-colors duration-200",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-active",
       "disabled:cursor-not-allowed disabled:opacity-50",
       BTN_VARIANT[variant],
       className,
@@ -181,19 +203,30 @@ export const Btn = ({ variant = "default", className = "", children, ...rest }: 
 );
 
 const FIELD =
-  "bg-action border border-default rounded-md px-3 py-1.5 text-body-md text-primary placeholder:text-quaternary " +
-  "transition-colors duration-200 focus:outline-none focus:border-active";
+  "h-8 bg-action border border-muted rounded-full px-3 text-label-sm text-primary placeholder:text-quaternary " +
+  "transition-colors duration-200 hover:border-default focus:outline-none focus-visible:border-default focus-visible:ring-2 focus-visible:ring-active";
 
 export const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
   <input {...props} className={cn(FIELD, props.className)} />
 );
 
-export const Select = ({ children, ...rest }: React.SelectHTMLAttributes<HTMLSelectElement>) => (
-  <select {...rest} className={cn(FIELD, rest.className)}>{children}</select>
-);
+/** Native select with its own chevron, so the arrow sits inside the pill. */
+export const Select = ({ children, className, ...rest }: React.SelectHTMLAttributes<HTMLSelectElement>) => {
+  const wide = className?.includes("w-full");
+  return (
+    <span className={cn("relative inline-flex min-w-0", wide && "w-full")}>
+      <select {...rest} className={cn(FIELD, "cursor-pointer appearance-none pr-8", className)}>{children}</select>
+      <AppIcon
+        name="chevronDown"
+        size="xs"
+        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-icon-quaternary"
+      />
+    </span>
+  );
+};
 
 export const Textarea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
-  <textarea {...props} className={cn(FIELD, "w-full", props.className)} />
+  <textarea {...props} className={cn(FIELD, "h-auto w-full rounded-lg py-2 text-body-md", props.className)} />
 );
 
 /** Radial progress. Telemetry value set in Michroma with tabular figures. */
@@ -250,7 +283,7 @@ export const KPI = ({ icon, label, value, trend, accent = "info", onClick, loadi
     <div onClick={onClick}>
       <div className="mb-3 flex items-center justify-between">
         <AppIcon name={icon} size="lg" className={TONE_ICON[accent]} />
-        <span className="text-caption uppercase tracking-wider text-tertiary">{label}</span>
+        <span className="text-caption font-medium uppercase tracking-[0.08em] text-quaternary">{label}</span>
       </div>
       {loading ? (
         <div
@@ -286,13 +319,17 @@ export const KPI = ({ icon, label, value, trend, accent = "info", onClick, loadi
   </Card>
 );
 
+/**
+ * Heading inside a card. Chronos panel vocabulary: a small uppercase caption
+ * names the panel, the one-line subtitle says what it is for.
+ */
 export const SectionHeader = ({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) => (
-  <div className="mb-3 flex items-end justify-between gap-3">
+  <div className="mb-4 flex items-start justify-between gap-3">
     <div className="min-w-0">
-      <h3 className="text-heading-sm text-primary">{title}</h3>
-      {subtitle && <p className="mt-0.5 text-body-sm text-tertiary">{subtitle}</p>}
+      <h3 className="text-caption uppercase tracking-[0.08em] text-quaternary">{title}</h3>
+      {subtitle && <p className="mt-1 text-body-sm text-tertiary">{subtitle}</p>}
     </div>
-    {action}
+    {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
   </div>
 );
 
@@ -310,7 +347,7 @@ export const ChartSkeleton = ({ height = 470, label = "Loading data" }: { height
   <div
     role="status"
     aria-label={label}
-    className="flex w-full animate-pulse flex-col justify-center gap-3 rounded-lg border border-default bg-raised p-6"
+    className="flex w-full animate-pulse flex-col justify-center gap-3 rounded-lg p-2"
     style={{ height }}
   >
     {[0.9, 0.6, 0.75, 0.45, 0.8].map((w, i) => (
@@ -339,10 +376,12 @@ export const ErrorState = ({
 }) => (
   <div
     role="alert"
-    className="flex w-full flex-col items-center justify-center gap-3 rounded-lg border border-default bg-raised-2 p-8 text-center"
+    className="flex w-full flex-col items-center justify-center gap-3 rounded-lg p-8 text-center"
     style={height ? { minHeight: height } : undefined}
   >
-    <AppIcon name="warning" size="2xl" className="text-feedback-error" />
+    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-feedback-error-background">
+      <AppIcon name="warning" size="lg" className="text-feedback-error-icon" />
+    </span>
     <div>
       <div className="text-heading-sm text-primary">{title ?? "Could not load this data"}</div>
       {message && <p className="mt-1 max-w-md text-body-sm text-tertiary">{message}</p>}
@@ -370,10 +409,12 @@ export const EmptyState = ({
   height?: number;
 }) => (
   <div
-    className="flex w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-default bg-raised-2 p-8 text-center"
+    className="flex w-full flex-col items-center justify-center gap-3 rounded-lg p-8 text-center"
     style={height ? { minHeight: height } : undefined}
   >
-    <AppIcon name={icon} size="2xl" className="text-icon-tertiary" />
+    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-action">
+      <AppIcon name={icon} size="lg" className="text-icon-tertiary" />
+    </span>
     <div>
       <div className="text-heading-sm text-primary">{title}</div>
       {message && <p className="mt-1 max-w-md text-body-sm text-tertiary">{message}</p>}
@@ -405,7 +446,7 @@ export const HeadlineSkeleton = ({ label = "Loading summary" }: { label?: string
   <div
     role="status"
     aria-label={label}
-    className="flex animate-pulse items-center gap-3 rounded-md border border-default bg-raised p-3"
+    className="flex animate-pulse items-center gap-3 rounded-lg border border-muted bg-container p-3"
   >
     <AppIcon name="threats" size="md" className="invisible" />
     <span className="text-body-md">

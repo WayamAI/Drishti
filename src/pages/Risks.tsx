@@ -1,3 +1,4 @@
+import { BAND_FILL } from "@/lib/tone";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, Badge, Btn, SectionHeader, SlideOver } from "@/components/ui-bits";
@@ -16,6 +17,7 @@ import { useCanWrite } from "@/hooks/use-auth";
 import { describeApiError, toApiError } from "@/lib/apiErrors";
 import { notify } from "@/lib/notify";
 import type { ApiRisk, RiskBand } from "@/lib/apiTypes";
+import { LOCALE, DATE_OPTIONS } from "@/lib/format";
 
 /**
  * Risk register, backed by /api/risks.
@@ -35,7 +37,7 @@ import type { ApiRisk, RiskBand } from "@/lib/apiTypes";
 const idOf = (r: ApiRisk) => `R-${String(r.id).padStart(3, "0")}`;
 
 const fmtDate = (iso: string) =>
-  new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  new Date(iso).toLocaleDateString(LOCALE, DATE_OPTIONS);
 
 export default function Risks() {
   const navigate = useNavigate();
@@ -135,16 +137,16 @@ export default function Risks() {
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Assets scored" value={risks.data ? counts.total : undefined} icon="risks" />
+        <MetricCard label="Assets scored" value={risks.data ? counts.total : undefined} icon="risks" domainIcon="asset" />
         <MetricCard
           label="Critical or extreme"
           value={risks.data ? counts.severe : undefined}
-          icon="threats"
+          icon="threats" domainIcon="risk"
           tone="danger"
           emphasis={Boolean(counts.severe)}
         />
-        <MetricCard label="High" value={risks.data ? counts.high : undefined} icon="activity" tone="warning" />
-        <MetricCard label="Highest score" value={risks.data ? counts.peak : undefined} icon="chart" />
+        <MetricCard label="High" value={risks.data ? counts.high : undefined} icon="activity" domainIcon="risk" tone="warning" />
+        <MetricCard label="Highest score" value={risks.data ? counts.peak : undefined} icon="chart" domainIcon="risk" />
       </div>
 
       <Card className="p-4">
@@ -206,7 +208,7 @@ export default function Risks() {
           }
         />
         <div className="mt-4 border-t border-muted pt-3">
-          <MiniBar segments={BAND_ORDER.map(b => ({ value: bandCounts[b] ?? 0, tone: BAND_TONE[b], label: b }))} />
+          <MiniBar segments={BAND_ORDER.map(b => ({ value: bandCounts[b] ?? 0, tone: BAND_TONE[b], label: b, fill: BAND_FILL[b] }))} />
         </div>
       </Card>
 
@@ -283,7 +285,7 @@ function RiskDrawer({
             <Field label="Last computed" value={fmtDate(risk.computedAt)} />
           </FieldGroup>
 
-          <p className="rounded-md border border-default bg-raised-2 px-3 py-2 text-caption text-tertiary">
+          <p className="rounded-lg bg-raised px-3 py-2 text-caption text-tertiary">
             The grid position shows likelihood × impact only. The band also weighs exposure and
             control gap, so a chip's colour will often differ from its cell — that is the engine
             being more precise than two axes can show, not a display error.

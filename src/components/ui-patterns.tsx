@@ -35,6 +35,14 @@ export const BAND_TONE: Record<RiskBand, Tone> = {
   LOW: "success",
 };
 
+const BAND_FILL_CLASS: Record<RiskBand, string> = {
+  EXTREME: "bg-band-extreme",
+  CRITICAL: "bg-band-critical",
+  HIGH: "bg-band-high",
+  MODERATE: "bg-band-moderate",
+  LOW: "bg-band-low",
+};
+
 /** Worst first — the order every band summary and sort uses. */
 export const BAND_ORDER: RiskBand[] = ["EXTREME", "CRITICAL", "HIGH", "MODERATE", "LOW"];
 
@@ -72,7 +80,18 @@ export const SENSITIVITY_TONE: Record<Sensitivity, Tone> = {
  */
 export const RiskBadge = ({ band, className }: { band: RiskBand | null; className?: string }) =>
   band ? (
-    <Badge tone={BAND_TONE[band]} className={className}>{band}</Badge>
+    <span
+      className={cn(
+        // inline-block, not flex: ::first-letter only applies to block
+        // containers, and sentence case is done in CSS so the text node stays
+        // the API's band for search, copy and assistive tech.
+        "inline-block max-w-full truncate rounded-full px-2.5 py-0.5 align-middle text-caption font-medium lowercase text-band-content first-letter:uppercase",
+        BAND_FILL_CLASS[band],
+        className,
+      )}
+    >
+      {band}
+    </span>
   ) : (
     <Badge tone="muted" className={className}>Not scored</Badge>
   );
@@ -138,14 +157,23 @@ export const PageHeader = ({
    * which is min-w-0 and truncates — lost whatever was left: "Vendor Risk"
    * rendered as "Ven…" at 390px with Refresh and New vendor beside it.
    */
-  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-6 sm:gap-y-3">
+  /*
+   * Chronos in-page header: a full-bleed band under the top bar, closed by a
+   * hairline. The negative margins cancel <main>'s padding so the rule runs
+   * edge to edge; the page's own spacing resumes below it.
+   */
+  <div className="-mx-3 -mt-3 flex flex-col gap-3 border-b border-muted px-3 py-4 sm:-mx-5 sm:-mt-5 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-6 sm:gap-y-3 sm:px-5">
     <div className="min-w-0 flex-1">
-      <div className="flex items-center gap-2">
-        {icon && <DomainIcon name={icon} size={20} className="text-brand" />}
-        <h1 className="font-display text-display-page text-primary sm:truncate">{title}</h1>
+      <div className="flex items-center gap-2.5">
+        {icon && (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-mark text-brand-mark">
+            <DomainIcon name={icon} size={18} />
+          </span>
+        )}
+        <h1 className="font-display text-display-lg text-primary sm:truncate sm:text-display-xl">{title}</h1>
       </div>
       {description && (
-        <p className="mt-1 max-w-2xl text-body-sm text-tertiary">{description}</p>
+        <p className="mt-1 max-w-[70ch] text-body-md text-tertiary">{description}</p>
       )}
       {meta && <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">{meta}</div>}
     </div>
@@ -164,6 +192,14 @@ export const PageHeader = ({
 
 /* ------------------------------------------------------------ metric card */
 
+const TONE_FIGURE: Record<Tone, string> = {
+  success: "text-feedback-success",
+  warning: "text-feedback-warning",
+  danger: "text-feedback-error",
+  info: "text-feedback-info",
+  muted: "text-primary",
+};
+
 /**
  * A single headline number.
  *
@@ -172,7 +208,7 @@ export const PageHeader = ({
  * reassuring thing this product can say and it must never be said by accident.
  */
 export const MetricCard = ({
-  label, value, sub, icon, tone = "muted", onClick, loading, emphasis,
+  label, value, sub, icon, domainIcon, tone = "muted", onClick, loading, emphasis,
 }: {
   label: string;
   value: number | string | undefined;
@@ -187,33 +223,55 @@ export const MetricCard = ({
 }) => {
   const Wrapper = onClick ? "button" : "div";
   return (
+    /*
+     * Chronos KPI tile: quiet uppercase label, the figure in Michroma, one
+     * line of context. An emphasised metric colours its figure in the tone —
+     * the number itself is the alarm, not a stripe beside it.
+     */
     <Wrapper
       onClick={onClick}
       type={onClick ? "button" : undefined}
       data-testid={`metric-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
       className={cn(
-        "relative flex w-full flex-col gap-1 overflow-hidden rounded-lg border border-default bg-container p-4 text-left",
+        "group relative flex w-full min-w-0 flex-col gap-1.5 overflow-hidden rounded-lg border border-muted bg-container px-4 py-3.5 text-left",
         "transition-colors duration-200",
-        onClick && "hover:border-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+        onClick && "hover:border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-active",
       )}
     >
-      {emphasis && (
-        <span
-          aria-hidden
-          className="absolute inset-x-0 top-0 h-0.5"
-          style={{ background: `var(--sem-feedback-${tone === "danger" ? "error" : tone === "muted" ? "neutral" : tone}-icon)` }}
-        />
-      )}
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-label-sm uppercase tracking-wide text-tertiary">{label}</span>
-        {icon && <AppIcon name={icon} size="md" className="text-icon-quaternary" />}
+      <div className="flex items-start justify-between gap-2">
+        <span className="truncate text-caption uppercase tracking-[0.08em] text-quaternary">{label}</span>
+        {domainIcon ? (
+          <span aria-hidden className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-mark text-brand-mark">
+            <DomainIcon name={domainIcon} size={15} />
+          </span>
+        ) : icon ? (
+          <span aria-hidden className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-action text-icon-tertiary">
+            <AppIcon name={icon} size="sm" />
+          </span>
+        ) : null}
       </div>
       {loading || value === undefined ? (
-        <span className="mt-1 inline-block h-8 w-16 animate-pulse rounded bg-raised-2" />
+        <span className="inline-block h-8 w-16 animate-pulse rounded-md bg-raised-2" />
       ) : (
-        <span className="font-display text-display-metric tabular text-primary">{value}</span>
+        <span
+          className={cn(
+            "font-display text-display-xl tabular sm:text-display-2xl",
+            emphasis ? TONE_FIGURE[tone] : "text-primary",
+          )}
+        >
+          {value}
+        </span>
       )}
-      {sub && <span className="text-caption text-tertiary">{sub}</span>}
+      <span className="flex min-h-4 items-center justify-between gap-2">
+        {sub ? <span className="truncate text-caption text-tertiary">{sub}</span> : <span />}
+        {onClick && (
+          <AppIcon
+            name="chevronRight"
+            size="xs"
+            className="shrink-0 text-icon-quaternary opacity-0 transition-opacity group-hover:opacity-100"
+          />
+        )}
+      </span>
     </Wrapper>
   );
 };
@@ -247,7 +305,7 @@ export const Tabs = ({
 
   return (
     <div role="tablist" aria-label="Sections" onKeyDown={onKeyDown}
-         className={cn("flex gap-0.5 overflow-x-auto border-b border-default", className)}>
+         className={cn("flex gap-1 overflow-x-auto border-b border-muted", className)}>
       {tabs.map(t => {
         const selected = t.id === active;
         return (
@@ -262,8 +320,8 @@ export const Tabs = ({
             onClick={() => onChange(t.id)}
             className={cn(
               "relative whitespace-nowrap px-3 py-2 text-label-md transition-colors duration-200",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand",
-              selected ? "text-primary" : "text-tertiary hover:text-primary",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-active",
+              selected ? "text-primary" : "text-tertiary hover:text-secondary",
             )}
           >
             {t.label}
@@ -272,7 +330,7 @@ export const Tabs = ({
                 {t.count}
               </span>
             )}
-            {selected && <span aria-hidden className="absolute inset-x-0 -bottom-px h-0.5 bg-brand" />}
+            {selected && <span aria-hidden className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-action-primary" />}
           </button>
         );
       })}
@@ -297,7 +355,7 @@ export const Field = ({ label, value, className }: { label: string; value: React
 /** A titled group of fields. */
 export const FieldGroup = ({ title, children }: { title?: string; children: ReactNode }) => (
   <div>
-    {title && <div className="mb-1 text-label-sm uppercase tracking-wide text-quaternary">{title}</div>}
+    {title && <div className="mb-1 text-caption uppercase tracking-[0.08em] text-quaternary">{title}</div>}
     <div>{children}</div>
   </div>
 );
@@ -331,10 +389,10 @@ export const FilterBar = ({
           onClick={() => onChange(o.value)}
           className={cn(
             "inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-label-sm transition-colors duration-200",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-active",
             selected
               ? "border-transparent bg-action-primary text-on-color"
-              : "border-default bg-action text-secondary hover:bg-action-secondary-hover hover:text-primary",
+              : "border-muted bg-action text-secondary hover:border-default hover:bg-raised-2 hover:text-primary",
           )}
         >
           {o.label}
@@ -379,7 +437,7 @@ export const EntityAvatar = ({
 /* ------------------------------------------------------------------ misc */
 
 /** Inline "n of m" bar, for composition breakdowns. */
-export const MiniBar = ({ segments }: { segments: Array<{ value: number; tone: Tone; label: string }> }) => {
+export const MiniBar = ({ segments }: { segments: Array<{ value: number; tone: Tone; label: string; fill?: string }> }) => {
   const total = segments.reduce((s, x) => s + x.value, 0) || 1;
   return (
     <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-raised-2" role="img"
@@ -389,7 +447,7 @@ export const MiniBar = ({ segments }: { segments: Array<{ value: number; tone: T
           key={s.label}
           style={{
             width: `${(s.value / total) * 100}%`,
-            background: `var(--sem-feedback-${s.tone === "danger" ? "error" : s.tone === "muted" ? "neutral" : s.tone}-icon)`,
+            background: s.fill ?? `var(--sem-feedback-${s.tone === "danger" ? "error" : s.tone === "muted" ? "neutral" : s.tone}-icon)`,
           }}
         />
       ))}

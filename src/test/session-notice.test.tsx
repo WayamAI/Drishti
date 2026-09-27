@@ -27,7 +27,7 @@ const ok = (body: unknown, status = 200, headers: Record<string, string> = {}) =
   });
 
 const sessionPayload = {
-  data: { token: "t.t.t", expiresIn: 28800, user: { id: 1, email: "admin@meridian.org", role: "ADMIN" } },
+  data: { token: "t.t.t", expiresIn: 28800, user: { id: 1, email: "admin@drishti.ai", role: "ADMIN" } },
 };
 
 beforeEach(() => {
@@ -66,7 +66,7 @@ describe("session-ended notice", () => {
   it("appears after a session existed and the page was reloaded", async () => {
     let auth!: ReturnType<typeof useAuth>;
     const view = render(page(<Harness onReady={a => { auth = a; }} />));
-    await act(async () => { await auth.login("admin@meridian.org", "pw"); });
+    await act(async () => { await auth.login("admin@drishti.ai", "pw"); });
     expect(hadSession()).toBe(true);
 
     // A reload: the tree remounts and the in-memory token is gone, but the
@@ -79,7 +79,7 @@ describe("session-ended notice", () => {
   it("does not appear after an explicit logout", async () => {
     let auth!: ReturnType<typeof useAuth>;
     const view = render(page(<Harness onReady={a => { auth = a; }} />));
-    await act(async () => { await auth.login("admin@meridian.org", "pw"); });
+    await act(async () => { await auth.login("admin@drishti.ai", "pw"); });
     await act(async () => { auth.logout(); });
     expect(hadSession()).toBe(false);
 
@@ -91,7 +91,7 @@ describe("session-ended notice", () => {
   it("gives way to a real error message rather than stacking with it", async () => {
     let auth!: ReturnType<typeof useAuth>;
     const view = render(page(<Harness onReady={a => { auth = a; }} />));
-    await act(async () => { await auth.login("admin@meridian.org", "pw"); });
+    await act(async () => { await auth.login("admin@drishti.ai", "pw"); });
     view.unmount();
 
     // Fresh mount with the breadcrumb set: the notice is showing.
@@ -101,7 +101,7 @@ describe("session-ended notice", () => {
 
     // Submit the form so the page's own error state is what changes. Values
     // here are fixtures against a stubbed fetch, not real credentials.
-    fireEvent.change(screen.getByLabelText(/Email address/i), { target: { value: "admin@meridian.org" } });
+    fireEvent.change(screen.getByLabelText(/Email address/i), { target: { value: "admin@drishti.ai" } });
     fireEvent.change(screen.getByLabelText(/^Password/i), { target: { value: "x" } });
     await act(async () => { fireEvent.submit(screen.getByRole("button", { name: /Sign in/i }).closest("form")!); });
 
@@ -114,7 +114,7 @@ describe("session-ended notice", () => {
   it("never writes a token to storage, only the boolean breadcrumb", async () => {
     let auth!: ReturnType<typeof useAuth>;
     render(page(<Harness onReady={a => { auth = a; }} />));
-    await act(async () => { await auth.login("admin@meridian.org", "pw"); });
+    await act(async () => { await auth.login("admin@drishti.ai", "pw"); });
 
     // sessionStorage holds the breadcrumb and nothing else.
     const session = Object.keys(sessionStorage).map(k => sessionStorage.getItem(k));
@@ -151,7 +151,7 @@ describe("recovery is not expiration", () => {
   async function withPriorSession() {
     let auth!: ReturnType<typeof useAuth>;
     const view = render(page(<Harness onReady={a => { auth = a; }} />));
-    await act(async () => { await auth.login("admin@meridian.org", "pw"); });
+    await act(async () => { await auth.login("admin@drishti.ai", "pw"); });
     expect(hadSession()).toBe(true);
     view.unmount();
   }

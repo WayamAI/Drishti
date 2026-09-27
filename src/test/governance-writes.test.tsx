@@ -80,7 +80,7 @@ beforeEach(() => {
     if (method !== "GET") calls.push({ url, method, body });
 
     if (url.includes("/api/auth/login")) {
-      return json({ data: { token: "tok", expiresIn: 3600, user: { id: 1, email: "a@meridian.org", role, organizationId: 1 } } });
+      return json({ data: { token: "tok", expiresIn: 3600, user: { id: 1, email: "a@drishti.ai", role, organizationId: 1 } } });
     }
     if (url.includes("/api/auth/refresh")) return json({ error: { message: "no session" } }, 401);
     if (url.match(/\/api\/controls\/\d+$/)) {
@@ -112,7 +112,7 @@ afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 function SignIn({ children }: { children: ReactNode }) {
   const { login, isAuthenticated, isInitializing } = useAuth();
   useEffect(() => {
-    if (!isInitializing) void login("a@meridian.org", "pw");
+    if (!isInitializing) void login("a@drishti.ai", "pw");
   }, [login, isInitializing]);
   return <>{isAuthenticated ? children : <div>signing in</div>}</>;
 }
@@ -251,7 +251,7 @@ describe("empty states wear their own mark", () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes("/api/auth/login")) {
-        return json({ data: { token: "t", expiresIn: 3600, user: { id: 1, email: "a@meridian.org", role: "ADMIN", organizationId: 1 } } });
+        return json({ data: { token: "t", expiresIn: 3600, user: { id: 1, email: "a@drishti.ai", role: "ADMIN", organizationId: 1 } } });
       }
       if (url.includes("/api/auth/refresh")) return json({ error: { message: "no" } }, 401);
       return paged([]);

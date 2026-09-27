@@ -25,7 +25,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.endsWith("/api/auth/login")) {
-      return json({ data: { token: "tok", expiresIn: 28800, user: { id: 1, email: "a@meridian.org", role } } });
+      return json({ data: { token: "tok", expiresIn: 28800, user: { id: 1, email: "a@drishti.ai", role } } });
     }
     if (url.endsWith("/api/threats")) {
       return json({ data: { summary: { total: 0, open: 0, openCritical: 0, bySeverity: {}, byStatus: {} }, threats: [] } });
@@ -39,7 +39,7 @@ afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 /** Signs in during render so the tree settles in an authenticated state. */
 function SignIn({ children }: { children: ReactNode }) {
   const { login, isAuthenticated } = useAuth();
-  useEffect(() => { void login("a@meridian.org", "pw"); }, [login]);
+  useEffect(() => { void login("a@drishti.ai", "pw"); }, [login]);
   return <>{isAuthenticated ? children : <div>signing in</div>}</>;
 }
 

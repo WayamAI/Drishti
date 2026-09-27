@@ -1,12 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import { Badge, Btn, EmptyState, SlideOver } from "@/components/ui-bits";
 import { AppIcon } from "@/components/AppIcon";
 import { IconButton } from "@/components/IconButton";
 import { SidebarItem, type SidebarNavItem } from "@/components/SidebarItem";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { DomainIcon } from "@/components/DomainIcon";
+import { DomainIcon, type DomainIconName } from "@/components/DomainIcon";
 import drishtiLogoLight from "@/assets/brand/drishti-logo-light.svg";
 import drishtiLogoDark from "@/assets/brand/drishti-logo-dark.svg";
 import drishtiMark from "@/assets/brand/drishti-mark.svg";
@@ -18,14 +17,9 @@ import { useGlobalSearch, ENTITY_LABEL } from "@/hooks/useGlobalSearch";
 import { cn } from "@/lib/utils";
 
 /**
- * Navigation, grouped by what the user is trying to do.
- *
- * Every destination here is backed by a live endpoint. Capabilities without a
- * backend — Controls, Policies, Audit, Remediation, Users, Settings — are
- * deliberately absent rather than present-and-inert: a nav item that opens an
- * empty screen is a promise the product does not keep. Their API contracts are
- * specified in FRONTEND_API_CONTRACT.md, and the items appear here the day
- * those land.
+ * Navigation, grouped by the job the user is doing, in the order they do it:
+ * see the posture, work what is live, know the estate, decide on risk, prove
+ * governance. Every destination is backed by a live endpoint.
  */
 type NavGroup = { label: string; items: SidebarNavItem[] };
 
@@ -35,14 +29,19 @@ const NAV: NavGroup[] = [
     items: [{ to: "/", label: "Dashboard", domainIcon: "dashboard", end: true }],
   },
   {
-    label: "Discover",
+    label: "Monitor",
     items: [
-      { to: "/assets", label: "Assets", domainIcon: "asset" },
-      { to: "/phi-flow", label: "PHI Flow", domainIcon: "dataFlow" },
-      { to: "/access", label: "Access & Identity", domainIcon: "identity" },
-      { to: "/vendors", label: "Vendors", domainIcon: "vendor" },
       // Badge is filled in at render from the live threat summary.
       { to: "/threats", label: "Threats", domainIcon: "threat", badgeTone: "danger" },
+      { to: "/access", label: "Access & Identity", domainIcon: "identity" },
+      { to: "/phi-flow", label: "PHI Flow", domainIcon: "dataFlow" },
+    ],
+  },
+  {
+    label: "Inventory",
+    items: [
+      { to: "/assets", label: "Assets", domainIcon: "asset" },
+      { to: "/vendors", label: "Vendors", domainIcon: "vendor" },
     ],
   },
   {
@@ -63,12 +62,9 @@ const NAV: NavGroup[] = [
     ],
   },
   {
-    label: "Operations",
-    items: [{ to: "/import", label: "Data Import", domainIcon: "import", requireRole: ["ADMIN"] }],
-  },
-  {
     label: "Admin",
     items: [
+      { to: "/import", label: "Data Import", domainIcon: "import", requireRole: ["ADMIN"] },
       { to: "/users", label: "Identities & Members", domainIcon: "identity" },
       { to: "/settings", label: "Settings", icon: "settings" },
     ],
@@ -94,47 +90,51 @@ const PAGE_TITLES: Record<string, string> = {
 
 const COLLAPSE_KEY = "drishti-sidebar-collapsed";
 
+type PaletteEntry = {
+  id: string;
+  kind: "page" | "record";
+  icon: DomainIconName | null;
+  title: string;
+  context: string;
+  status?: string | null;
+  to: string;
+};
+
 export default function Layout({ children }: { children: ReactNode }) {
   const loc = useLocation();
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
 
   /*
-   * Read from /api/threats/summary, not from a page of threats. The list is
-   * paginated now, so counting open rows client-side would report "3 open"
-   * when it means "3 open on page one of four". The summary is
-   * organisation-wide by construction.
-   *
-   * Undefined while loading or unreachable, which hides the badge: no number
-   * at all beats a stale or invented one.
+   * Read from /api/threats/summary, not from a page of threats: the list is
+   * paginated, so counting open rows client-side would undercount. Undefined
+   * while loading or unreachable, which hides the badge — no number at all
+   * beats a stale or invented one.
    */
   const openThreats = useThreatSummary().data?.open;
   const openThreatBadge = openThreats ? String(openThreats) : undefined;
 
   /* Hide what the router would bounce them from. The API is the real gate. */
-  const visibleNav = NAV
-    .map(g => ({
-      ...g,
-      items: g.items.filter(i => !i.requireRole || i.requireRole.includes(user?.role ?? "")),
-    }))
-    .filter(g => g.items.length > 0);
+  const visibleNav = useMemo(
+    () =>
+      NAV.map(g => ({
+        ...g,
+        items: g.items.filter(i => !i.requireRole || i.requireRole.includes(user?.role ?? "")),
+      })).filter(g => g.items.length > 0),
+    [user?.role],
+  );
+
+  const activeGroup = visibleNav.find(g =>
+    g.items.some(i => (i.end ? loc.pathname === i.to : loc.pathname.startsWith(i.to))),
+  );
 
   const [notifOpen, setNotifOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeIndex, setActiveIndex] = useState(0);
-  const searchRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const search = useGlobalSearch(searchTerm, searchOpen);
+  /* ------------------------------------------------------ refresh */
 
-  /*
-   * A real refresh: invalidate every cached query and let the hooks refetch.
-   * This used to be a 1.5s timer followed by "Dashboard refreshed" — a button
-   * that asserted freshness it had done nothing to obtain.
-   */
+  /* A real refresh: invalidate every cached query and let the hooks refetch. */
   const inFlight = useIsFetching();
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
@@ -151,6 +151,8 @@ export default function Layout({ children }: { children: ReactNode }) {
     notify.success("Signed out");
     navigate("/login", { replace: true });
   };
+
+  /* ---------------------------------------------------- rail state */
 
   // Sidebar collapse persists across reloads, like the theme choice.
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -169,270 +171,348 @@ export default function Layout({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  /* Close the palette on outside click, and open it on Cmd/Ctrl-K. */
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  useEffect(() => { setMobileNavOpen(false); }, [loc.pathname]);
+  // The mobile drawer always shows labels, whatever the desktop rail is doing.
+  const railCollapsed = collapsed && !mobileNavOpen;
+
+  /* ---------------------------------------------- command palette */
+
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const search = useGlobalSearch(searchTerm, paletteOpen);
+
+  const openPalette = useCallback(() => {
+    setPaletteOpen(true);
+    window.setTimeout(() => searchInputRef.current?.focus(), 0);
+  }, []);
+  const closePalette = useCallback(() => {
+    setPaletteOpen(false);
+    setSearchTerm("");
+  }, []);
+
   useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchOpen(false);
-    };
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setSearchOpen(true);
-        window.setTimeout(() => searchInputRef.current?.focus(), 0);
+        setPaletteOpen(open => {
+          if (!open) window.setTimeout(() => searchInputRef.current?.focus(), 0);
+          return !open;
+        });
       }
-      if (e.key === "Escape") setSearchOpen(false);
     };
-    document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  useEffect(() => { setActiveIndex(0); }, [search.query]);
+  /*
+   * Pages first, then records. Typing "vend" should offer the Vendors page
+   * before any vendor named "Vendex" — most palette use is navigation.
+   */
+  const pageEntries = useMemo<PaletteEntry[]>(() => {
+    const q = searchTerm.trim().toLowerCase();
+    return visibleNav.flatMap(g =>
+      g.items
+        .filter(i => {
+          if (!q) return true;
+          const title = PAGE_TITLES[i.to] ?? i.label;
+          return `${i.label} ${title} ${g.label}`.toLowerCase().includes(q);
+        })
+        .map(i => ({
+          id: `page:${i.to}`,
+          kind: "page" as const,
+          icon: i.domainIcon ?? null,
+          title: i.label,
+          context: g.label,
+          to: i.to,
+        })),
+    );
+  }, [searchTerm, visibleNav]);
+
+  const recordEntries = useMemo<PaletteEntry[]>(
+    () =>
+      search.flat.map(r => ({
+        id: r.id,
+        kind: "record" as const,
+        icon: r.icon,
+        title: r.title,
+        context: `${ENTITY_LABEL[r.entity]} · ${r.context}`,
+        status: r.status,
+        to: r.to,
+      })),
+    [search.flat],
+  );
+
+  const entries = useMemo(
+    () => [...pageEntries.slice(0, search.active ? 4 : 14), ...recordEntries],
+    [pageEntries, recordEntries, search.active],
+  );
+
+  useEffect(() => { setActiveIndex(0); }, [searchTerm]);
 
   const goTo = useCallback((to: string) => {
-    setSearchOpen(false);
-    setSearchTerm("");
+    closePalette();
     navigate(to);
-  }, [navigate]);
+  }, [closePalette, navigate]);
 
-  const onSearchKeyDown = (e: React.KeyboardEvent) => {
-    if (!search.flat.length) return;
-    if (e.key === "ArrowDown") { e.preventDefault(); setActiveIndex(i => (i + 1) % search.flat.length); }
-    else if (e.key === "ArrowUp") { e.preventDefault(); setActiveIndex(i => (i - 1 + search.flat.length) % search.flat.length); }
-    else if (e.key === "Enter") { e.preventDefault(); goTo(search.flat[activeIndex].to); }
+  const onPaletteKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") { e.preventDefault(); closePalette(); return; }
+    if (!entries.length) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setActiveIndex(i => (i + 1) % entries.length); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActiveIndex(i => (i - 1 + entries.length) % entries.length); }
+    else if (e.key === "Enter") { e.preventDefault(); goTo(entries[activeIndex].to); }
   };
 
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  useEffect(() => { setMobileNavOpen(false); }, [loc.pathname]);
+  /* ----------------------------------------------------------- render */
 
+  const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
   const displayName = user?.name ?? "Signed in";
   const initials = displayName.split(" ").filter(Boolean).map(p => p[0]).slice(0, 2).join("").toUpperCase();
   const pageTitle = PAGE_TITLES[loc.pathname] ?? "Drishti";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-page text-primary">
+    <div className="flex h-screen overflow-hidden bg-page text-secondary">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[60] focus:rounded-md focus:bg-action-primary focus:px-3 focus:py-2 focus:text-on-color"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[60] focus:rounded-full focus:bg-action-primary focus:px-3 focus:py-2 focus:text-on-color"
       >
         Skip to content
       </a>
 
       {mobileNavOpen && (
-        <div className="fixed inset-0 z-40 bg-black/60 lg:hidden" onClick={() => setMobileNavOpen(false)} />
+        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMobileNavOpen(false)} />
       )}
 
-      {/* SIDEBAR */}
+      {/* SIDEBAR — the Chronos rail: 68px of pucks collapsed, 252px expanded. */}
       <aside
         aria-label="Main navigation"
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex flex-shrink-0 flex-col border-r border-muted bg-container",
-          "transition-[width,transform] duration-200 lg:static lg:translate-x-0",
-          collapsed ? "w-[72px]" : "w-[236px]",
+          "transition-[width,transform] duration-200 ease-out lg:static lg:translate-x-0",
+          railCollapsed ? "w-[68px]" : "w-[252px]",
           mobileNavOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className={cn("flex h-14 items-center border-b border-muted", collapsed ? "justify-center px-2" : "px-4")}>
-          {collapsed ? (
-            <img src={drishtiMark} alt="Drishti" className="h-7 w-7 object-contain" />
+        <div className={cn("flex h-14 shrink-0 items-center border-b border-muted", railCollapsed ? "justify-center" : "justify-between pl-4 pr-3")}>
+          {railCollapsed ? (
+            <img src={drishtiMark} alt="Drishti" className="h-8 w-8 object-contain" />
           ) : (
-            <img
-              src={theme === "dark" ? drishtiLogoDark : drishtiLogoLight}
-              alt="Drishti"
-              className="h-7 object-contain"
-            />
+            <>
+              <img
+                src={theme === "dark" ? drishtiLogoDark : drishtiLogoLight}
+                alt="Drishti"
+                className="h-7 object-contain"
+              />
+              <IconButton
+                icon="collapse"
+                aria-label="Collapse sidebar"
+                title="Collapse sidebar"
+                size="sm"
+                className="hidden lg:inline-flex"
+                onClick={toggleCollapsed}
+              />
+            </>
           )}
         </div>
 
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3">
-          {visibleNav.map(group => (
-            <div key={group.label} className="mb-3 last:mb-0">
-              {!collapsed && (
-                <div className="mb-1 px-2 text-caption font-semibold uppercase tracking-wider text-quaternary">
+        <nav className={cn("min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-3", railCollapsed ? "px-[16px]" : "px-3")}>
+          {visibleNav.map((group, gi) => (
+            <div key={group.label} className={cn(gi > 0 && (railCollapsed ? "mt-2.5 border-t border-muted pt-2.5" : "mt-3"))}>
+              {!railCollapsed && (
+                <div className="mb-1 px-1 text-caption uppercase tracking-[0.08em] text-quaternary">
                   {group.label}
                 </div>
               )}
-              {group.items.map(item => (
-                <SidebarItem
-                  key={item.to}
-                  item={item.to === "/threats" ? { ...item, badge: openThreatBadge } : item}
-                  collapsed={collapsed}
-                />
-              ))}
+              <div className="flex flex-col gap-1">
+                {group.items.map(item => (
+                  <SidebarItem
+                    key={item.to}
+                    item={item.to === "/threats" ? { ...item, badge: openThreatBadge } : item}
+                    collapsed={railCollapsed}
+                  />
+                ))}
+              </div>
             </div>
           ))}
         </nav>
 
-        <div className={cn("space-y-2.5 border-t border-muted", collapsed ? "p-2" : "p-3")}>
-          <div className={cn("flex", collapsed ? "justify-center" : "justify-end")}>
-            <IconButton
-              icon={collapsed ? "expand" : "collapse"}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              size="sm"
-              onClick={toggleCollapsed}
+        {railCollapsed ? (
+          <div className="flex shrink-0 flex-col items-center gap-1.5 border-t border-muted px-[16px] py-3">
+            <RailButton icon="expand" label="Expand sidebar" onClick={toggleCollapsed} className="hidden lg:flex" />
+            <RailButton
+              icon={theme === "dark" ? "themeLight" : "themeDark"}
+              label={theme === "dark" ? "Switch to light" : "Switch to dark"}
+              onClick={toggleTheme}
             />
-          </div>
-
-          <div className={cn("flex items-center gap-2 border-t border-muted pt-2", collapsed && "flex-col gap-2")}>
             <div
-              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-action-primary text-label-sm text-on-color"
-              title={collapsed ? `${displayName} · ${user?.email ?? ""}` : undefined}
+              className="mt-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-action-primary text-label-sm text-on-color"
+              title={`${displayName} · ${user?.email ?? ""}`}
             >
               {initials}
             </div>
-            {!collapsed && (
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-label-md text-primary">{displayName}</div>
-                <div className="truncate text-caption text-tertiary">{user?.email ?? ""}</div>
-              </div>
-            )}
             <IconButton icon="logout" aria-label="Log out" title="Log out" size="sm" onClick={onLogout} />
           </div>
-        </div>
+        ) : (
+          <div className="flex shrink-0 items-center gap-2.5 border-t border-muted px-3 py-3">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-action-primary text-label-sm text-on-color">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-label-sm text-primary">{displayName}</div>
+              <div className="truncate text-caption font-normal text-tertiary">
+                {user?.role ? `${user.role.charAt(0)}${user.role.slice(1).toLowerCase()}` : user?.email ?? ""}
+              </div>
+            </div>
+            <IconButton
+              icon={theme === "dark" ? "themeLight" : "themeDark"}
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              size="sm"
+              onClick={toggleTheme}
+            />
+            <IconButton icon="logout" aria-label="Log out" title="Log out" size="sm" onClick={onLogout} />
+          </div>
+        )}
       </aside>
 
       {/* MAIN */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center gap-3 border-b border-muted bg-container px-3 sm:gap-4 sm:px-5">
-          <IconButton
-            icon="menu"
-            aria-label="Open navigation menu"
-            size="sm"
-            className="-ml-1 flex-shrink-0 lg:hidden"
-            onClick={() => setMobileNavOpen(true)}
-          />
-
-          {/*
-            Breadcrumb only. The page title itself belongs to <PageHeader>,
-            which every routed page renders — having it here as well printed
-            the same words twice, forty pixels apart, on every screen.
-          */}
-          <nav aria-label="Breadcrumb" className="hidden min-w-0 shrink-0 sm:block">
-            <ol className="flex items-center gap-1.5 text-body-sm text-tertiary">
-              <li className="flex items-center">
-                <AppIcon name="home" size="sm" className="text-icon-quaternary" />
-                <span className="sr-only">Drishti</span>
-              </li>
-              <li aria-hidden className="text-quaternary">/</li>
-              <li className="truncate text-secondary" aria-current="page">{pageTitle}</li>
-            </ol>
-          </nav>
-
-          {/* GLOBAL SEARCH — real results over the live API */}
-          <div className="relative max-w-md flex-1" ref={searchRef}>
-            <AppIcon name="search" size="md" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-icon-quaternary" />
-            <input
-              ref={searchInputRef}
-              value={searchTerm}
-              onChange={e => { setSearchTerm(e.target.value); setSearchOpen(true); }}
-              onFocus={() => setSearchOpen(true)}
-              onKeyDown={onSearchKeyDown}
-              placeholder="Search assets, vendors, risks, threats…"
-              aria-label="Search Drishti"
-              role="combobox"
-              aria-expanded={searchOpen}
-              aria-controls="global-search-results"
-              aria-autocomplete="list"
-              className="w-full rounded-md border border-default bg-action py-1.5 pl-9 pr-12 text-body-md text-primary placeholder:text-quaternary transition-colors duration-200 focus:border-active focus:outline-none"
+        <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-muted bg-page px-3 sm:px-5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <IconButton
+              icon="menu"
+              aria-label="Open navigation menu"
+              variant="subtle"
+              size="sm"
+              className="flex-shrink-0 lg:hidden"
+              onClick={() => setMobileNavOpen(true)}
             />
-            <kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-default px-1.5 py-0.5 text-caption text-quaternary md:block">
-              ⌘K
-            </kbd>
 
-            {searchOpen && (
-              <div
-                id="global-search-results"
-                role="listbox"
-                aria-label="Search results"
-                className="fade-in absolute top-full z-30 mt-1 max-h-[420px] w-full overflow-y-auto rounded-md border border-default bg-raised shadow-panel"
-              >
-                {!search.active ? (
-                  <p className="px-3 py-3 text-body-sm text-tertiary">
-                    Type at least two characters to search assets, vendors, risks, threats and identities.
-                  </p>
-                ) : search.isLoading ? (
-                  <p className="px-3 py-3 text-body-sm text-tertiary">Searching…</p>
-                ) : search.isError ? (
-                  <p className="px-3 py-3 text-body-sm text-feedback-error">
-                    Search is unavailable right now.
-                  </p>
-                ) : search.flat.length === 0 ? (
-                  <p className="px-3 py-3 text-body-sm text-tertiary">No matches for “{search.query}”.</p>
-                ) : (
-                  search.grouped.map(group => (
-                    <div key={group.entity}>
-                      <div className="sticky top-0 bg-raised-2 px-3 py-1 text-caption font-semibold uppercase tracking-wider text-quaternary">
-                        {ENTITY_LABEL[group.entity]}
-                      </div>
-                      {group.items.map(r => {
-                        const idx = search.flat.findIndex(f => f.id === r.id);
-                        const active = idx === activeIndex;
-                        return (
-                          <button
-                            key={r.id}
-                            role="option"
-                            aria-selected={active}
-                            onMouseEnter={() => setActiveIndex(idx)}
-                            onClick={() => goTo(r.to)}
-                            className={cn(
-                              "flex w-full items-center gap-2.5 border-b border-muted px-3 py-2 text-left transition-colors last:border-0",
-                              active ? "bg-action" : "hover:bg-action",
-                            )}
-                          >
-                            <DomainIcon name={r.icon} size={16} className="shrink-0 text-icon-tertiary" />
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-body-md text-primary">{r.title}</span>
-                              <span className="block truncate text-caption text-tertiary">{r.context}</span>
-                            </span>
-                            {r.status && <Badge tone="muted">{r.status}</Badge>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ))
+            {/*
+              Where you are, as navigation rather than a heading: the page's
+              own <PageHeader> carries the <h1>.
+            */}
+            <nav aria-label="Breadcrumb" className="min-w-0">
+              <ol className="flex min-w-0 items-center gap-2.5">
+                {activeGroup && activeGroup.label !== "Overview" && (
+                  <li className="hidden text-caption uppercase tracking-[0.08em] text-quaternary sm:block">
+                    {activeGroup.label}
+                  </li>
                 )}
-              </div>
-            )}
+                <li className="truncate font-display text-display-base text-primary sm:text-display-lg" aria-current="page">
+                  {pageTitle}
+                </li>
+              </ol>
+            </nav>
           </div>
 
-          <div
-            className="hidden items-center gap-2 rounded-full border border-default bg-action px-2.5 py-1 md:flex"
-            title={inFlight > 0 ? "Fetching live data" : "Polling the API"}
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="pulse-dot absolute inline-flex h-full w-full rounded-full bg-feedback-success-icon" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-feedback-success-icon" />
-            </span>
-            <span className="whitespace-nowrap text-caption text-secondary">Live</span>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={openPalette}
+              aria-label="Search Drishti"
+              className="flex h-8 items-center gap-2 rounded-full border border-muted bg-action px-3 text-label-sm text-tertiary outline-none transition-colors duration-200 hover:border-default hover:bg-raised-2 hover:text-secondary focus-visible:ring-2 focus-visible:ring-active"
+            >
+              <AppIcon name="search" size="xs" />
+              <span className="hidden md:inline">Search</span>
+              <kbd className="hidden rounded border border-muted px-1 font-sans text-caption text-quaternary md:inline">
+                {isMac ? "⌘" : "Ctrl"}K
+              </kbd>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void onRefresh()}
+              aria-label="Refresh all data"
+              title={inFlight > 0 ? "Fetching live data" : "Live · polling the API. Click to refresh now."}
+              className="hidden h-8 items-center gap-1.5 rounded-full border border-muted bg-action px-3 text-label-sm text-tertiary outline-none transition-colors duration-200 hover:border-default hover:bg-raised-2 hover:text-secondary focus-visible:ring-2 focus-visible:ring-active sm:flex"
+            >
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="pulse-dot absolute inline-flex h-full w-full rounded-full bg-feedback-success-icon" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-feedback-success-icon" />
+              </span>
+              <span className="text-feedback-success">Live</span>
+              <AppIcon name="refresh" size="xs" spin={refreshing || inFlight > 0} className="text-icon-quaternary" />
+            </button>
+
+            <IconButton
+              icon="notification"
+              aria-label="Notifications"
+              size="sm"
+              onClick={() => setNotifOpen(true)}
+            />
           </div>
-
-          <ThemeToggle />
-
-          <IconButton
-            icon="refresh"
-            aria-label="Refresh all data"
-            title="Refresh all data"
-            size="sm"
-            spin={refreshing || inFlight > 0}
-            onClick={() => void onRefresh()}
-          />
-
-          <IconButton
-            icon="notification"
-            aria-label="Notifications"
-            size="sm"
-            onClick={() => setNotifOpen(true)}
-          />
         </header>
 
-        <main id="main" className="flex-1 overflow-y-auto overflow-x-hidden bg-page p-3 sm:p-5">
+        <main id="main" className="relative flex-1 overflow-y-auto overflow-x-hidden bg-page p-3 sm:p-5">
           {children}
         </main>
       </div>
+
+      {/* COMMAND PALETTE — pages and live records, one keyboard path. */}
+      {paletteOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center px-3 pt-[12vh]" onKeyDown={onPaletteKeyDown}>
+          <div className="absolute inset-0 bg-black/40" onClick={closePalette} />
+          <div className="fade-in relative flex max-h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-lg border border-muted bg-container shadow-panel">
+            <div className="flex h-12 shrink-0 items-center gap-2.5 border-b border-muted px-4">
+              <AppIcon name="search" size="sm" className="text-icon-quaternary" />
+              <input
+                ref={searchInputRef}
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Jump to a page, or search assets, vendors, risks, threats…"
+                aria-label="Search pages and records"
+                role="combobox"
+                aria-expanded
+                aria-controls="global-search-results"
+                aria-autocomplete="list"
+                className="min-w-0 flex-1 bg-transparent text-body-md text-primary outline-none placeholder:text-quaternary"
+              />
+              <kbd className="rounded border border-muted px-1 text-caption text-quaternary">Esc</kbd>
+            </div>
+
+            <div id="global-search-results" role="listbox" aria-label="Search results" className="min-h-0 overflow-y-auto py-1.5">
+              {pageEntries.length > 0 && (
+                <PaletteSection label={search.active ? "Pages" : "Go to"}>
+                  {entries.filter(e => e.kind === "page").map(e => (
+                    <PaletteRow key={e.id} entry={e} active={entries.indexOf(e) === activeIndex}
+                      onHover={() => setActiveIndex(entries.indexOf(e))} onSelect={() => goTo(e.to)} />
+                  ))}
+                </PaletteSection>
+              )}
+
+              {search.active && (
+                search.isLoading ? (
+                  <p className="px-4 py-3 text-body-sm text-tertiary">Searching records…</p>
+                ) : search.isError ? (
+                  <p className="px-4 py-3 text-body-sm text-feedback-error">Record search is unavailable right now.</p>
+                ) : recordEntries.length === 0 ? (
+                  <p className="px-4 py-3 text-body-sm text-tertiary">No records match “{search.query}”.</p>
+                ) : (
+                  <PaletteSection label="Records">
+                    {entries.filter(e => e.kind === "record").map(e => (
+                      <PaletteRow key={e.id} entry={e} active={entries.indexOf(e) === activeIndex}
+                        onHover={() => setActiveIndex(entries.indexOf(e))} onSelect={() => goTo(e.to)} />
+                    ))}
+                  </PaletteSection>
+                )
+              )}
+
+              {!search.active && searchTerm.trim().length === 1 && pageEntries.length === 0 && (
+                <p className="px-4 py-3 text-body-sm text-tertiary">Keep typing to search records.</p>
+              )}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-3 border-t border-muted px-4 py-2 text-caption text-quaternary">
+              <span><kbd className="font-sans">↑↓</kbd> move</span>
+              <span><kbd className="font-sans">↵</kbd> open</span>
+              <span className="ml-auto">Searches the live API</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/*
         Notifications have no backend. Rather than a fabricated feed with an
@@ -453,5 +533,69 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
       </SlideOver>
     </div>
+  );
+}
+
+/** A utility control on the collapsed rail, in the same puck language as a nav item. */
+function RailButton({
+  icon, label, onClick, className,
+}: {
+  icon: React.ComponentProps<typeof AppIcon>["name"];
+  label: string;
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "group flex items-center justify-center rounded-full outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-active",
+        className,
+      )}
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-action text-icon-tertiary transition-colors duration-200 group-hover:bg-raised-2 group-hover:text-icon-secondary">
+        <AppIcon name={icon} size="md" />
+      </span>
+    </button>
+  );
+}
+
+function PaletteSection({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="pb-1">
+      <div className="px-4 pb-1 pt-2 text-caption uppercase tracking-[0.08em] text-quaternary">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function PaletteRow({
+  entry, active, onHover, onSelect,
+}: { entry: PaletteEntry; active: boolean; onHover: () => void; onSelect: () => void }) {
+  return (
+    <button
+      type="button"
+      role="option"
+      aria-selected={active}
+      onMouseEnter={onHover}
+      onClick={onSelect}
+      className={cn(
+        "mx-1.5 flex w-[calc(100%-0.75rem)] items-center gap-3 rounded-md px-2.5 py-2 text-left transition-colors",
+        active ? "bg-action" : "hover:bg-action",
+      )}
+    >
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-action text-icon-tertiary">
+        {entry.icon ? <DomainIcon name={entry.icon} size={14} /> : <AppIcon name="settings" size="sm" />}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-body-md text-primary">{entry.title}</span>
+        <span className="block truncate text-caption font-normal text-tertiary">{entry.context}</span>
+      </span>
+      {entry.status && <Badge tone="muted">{entry.status}</Badge>}
+      {active && <AppIcon name="chevronRight" size="xs" className="text-icon-quaternary" />}
+    </button>
   );
 }

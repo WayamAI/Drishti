@@ -15,6 +15,8 @@ import { describeApiError, toApiError } from "@/lib/apiErrors";
 import { notify } from "@/lib/notify";
 import type { ApiAccessGrant, AccessFlag, AccessLevel } from "@/lib/apiTypes";
 import type { Tone } from "@/lib/tone";
+import { LOCALE, DATE_OPTIONS } from "@/lib/format";
+import { remediationLink } from "@/lib/remediationLink";
 
 /**
  * Access review — who can reach which PHI system, and what is wrong with it.
@@ -51,7 +53,7 @@ const LEVEL_TONE: Record<AccessLevel, Tone> = {
 const LEVELS: AccessLevel[] = ["ADMIN", "WRITE", "READ"];
 
 const fmtDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "Never";
+  iso ? new Date(iso).toLocaleDateString(LOCALE, DATE_OPTIONS) : "Never";
 
 export default function Access() {
   const canWrite = useCanWrite();
@@ -114,7 +116,7 @@ export default function Access() {
       id: "level",
       header: "Level",
       sortValue: g => g.level,
-      cell: g => <Badge tone={LEVEL_TONE[g.level]}>{g.level}</Badge>,
+      cell: g => <Badge variant="soft" tone={LEVEL_TONE[g.level]}>{g.level}</Badge>,
     },
     {
       id: "lastUsed",
@@ -137,7 +139,7 @@ export default function Access() {
         ) : (
           <div className="flex flex-wrap gap-1">
             {g.flags.map(f => (
-              <Badge key={f} tone={FLAG_TONE[f]}>{FLAG_LABEL[f]}</Badge>
+              <Badge key={f} variant="soft" tone={FLAG_TONE[f]}>{FLAG_LABEL[f]}</Badge>
             ))}
           </div>
         ),
@@ -162,11 +164,11 @@ export default function Access() {
 
       {/* Organisation-wide, from /api/access/summary — never from the page. */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Access grants" value={s?.total} icon="access" />
+        <MetricCard label="Access grants" value={s?.total} icon="access" domainIcon="identity" />
         <MetricCard
           label="Flagged"
           value={s?.flagged}
-          icon="threats"
+          icon="threats" domainIcon="threat"
           tone="warning"
           emphasis={Boolean(s?.flagged)}
           sub={s ? `of ${s.total} grants` : undefined}
@@ -174,14 +176,14 @@ export default function Access() {
         <MetricCard
           label="Without MFA"
           value={s?.withoutMfa}
-          icon="unlocked"
+          icon="unlocked" domainIcon="control"
           tone="danger"
           emphasis={Boolean(s?.withoutMfa)}
         />
         <MetricCard
           label="Stale or never used"
           value={s ? s.stale + s.neverUsed : undefined}
-          icon="clock"
+          icon="clock" domainIcon="audit"
           tone="warning"
           emphasis={Boolean(s && s.stale + s.neverUsed)}
           sub={s ? `unused past ${s.staleAfterDays} days` : undefined}
@@ -189,7 +191,7 @@ export default function Access() {
       </div>
 
       {worst && worst.riskFlagCount > 0 && (
-        <div className="flex flex-wrap items-center gap-3 rounded-md border border-feedback-error-stroke bg-feedback-error-background p-3">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-feedback-error-stroke bg-feedback-error-background p-3">
           <AppIcon name="threats" size="md" className="text-feedback-error" />
           <span className="text-body-md text-primary">
             <span className="font-semibold">Over-privileged grant:</span> {worst.identityName} holds{" "}
@@ -312,7 +314,7 @@ function AccessDrawer({
               </Btn>
             </div>
             {confirmRevoke && (
-              <div className="rounded-md border border-feedback-error-stroke bg-feedback-error-background p-2.5">
+              <div className="rounded-lg border border-feedback-error-stroke bg-feedback-error-background p-2.5">
                 <p className="mb-2 text-body-sm text-feedback-error">
                   Revoke {grant.level} on {grant.assetName} for {grant.identityName}? The grant's
                   history stays attached and it can be re-granted later.
@@ -364,7 +366,7 @@ function AccessDrawer({
             <FieldGroup title={`Findings (${grant.flags.length})`}>
               <div className="flex flex-wrap gap-1.5 py-1">
                 {grant.flags.map(f => (
-                  <Badge key={f} tone={FLAG_TONE[f]}>{FLAG_LABEL[f]}</Badge>
+                  <Badge key={f} variant="soft" tone={FLAG_TONE[f]}>{FLAG_LABEL[f]}</Badge>
                 ))}
               </div>
             </FieldGroup>
@@ -415,13 +417,45 @@ function AccessDrawer({
             </FieldGroup>
           )}
 
-          <Btn
-            variant="outline"
-            className="w-full"
-            onClick={() => navigate(`/assets?open=${grant.assetId}`)}
-          >
-            Open {grant.assetName}
-          </Btn>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Btn
+              variant="outline"
+              className="w-full sm:w-auto sm:flex-1"
+              onClick={() => navigate(`/assets?open=${grant.assetId}`)}
+            >
+              Open {grant.assetName}
+            </Btn>
+            {/*
+              Revoking or downgrading fixes a grant on the spot. When the fix
+              needs someone else — an owner to confirm, MFA to be rolled out —
+              it becomes a tracked finding instead.
+            */}
+            {canWrite && grant.flags.length > 0 && !grant.revokedAt && (
+              <Btn
+                variant="outline"
+                className="w-full sm:w-auto sm:flex-1"
+                onClick={() =>
+                  navigate(
+                    remediationLink({
+                      source: "ACCESS",
+                      title: `Review ${grant.level} access for ${grant.identityName} on ${grant.assetName}`,
+                      description: `Access review findings: ${grant.flags.map(f => FLAG_LABEL[f]).join(", ")}.`,
+                      recommendation: "Revoke or downgrade the grant, enforce MFA, or record why the access is justified.",
+                      severity:
+                        grant.flags.includes("INACTIVE_IDENTITY") || (grant.level === "ADMIN" && grant.flags.includes("EXCESSIVE_LEVEL"))
+                          ? "HIGH"
+                          : "MEDIUM",
+                      assetId: grant.assetId,
+                      context: `${grant.identityName}'s ${grant.level} grant on ${grant.assetName}`,
+                    }),
+                  )
+                }
+              >
+                <AppIcon name="remediation" size="sm" />
+                Raise remediation
+              </Btn>
+            )}
+          </div>
         </div>
       )}
     </SlideOver>

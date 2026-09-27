@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, Badge, Btn, Select, SectionHeader, ChartSkeleton } from "@/components/ui-bits";
 import { PageHeader } from "@/components/ui-patterns";
 import { AppIcon } from "@/components/AppIcon";
@@ -18,7 +19,7 @@ const MAX_BYTES = 2 * 1024 * 1024;
  * would read as "Phi Volume", which is wrong twice over -- it is an initialism,
  * and it is the one in the product's name.
  */
-const INITIALISMS = new Set(["phi", "ephi", "mfa", "sso", "id", "ip", "url", "api", "pii", "csv"]);
+const INITIALISMS = new Set(["phi", "ephi", "mfa", "sso", "id", "ip", "url", "api", "pii", "csv", "baa"]);
 
 /**
  * `column` is the literal CSV header, so it arrives lowercase and camelCased.
@@ -47,6 +48,29 @@ const TYPE_LABEL: Record<ImportColumnSpec["type"], string> = {
   enum: "Enum",
 };
 
+/**
+ * Four record types refer to others by name, and the referenced record must
+ * already exist. Shown up front so the order is learned before a file is
+ * rejected for it, not after.
+ */
+const DEPENDS_ON: Partial<Record<ImportEntity, ImportEntity[]>> = {
+  "data-flows": ["assets", "phi-types"],
+  "access-grants": ["assets"],
+  threats: ["assets"],
+  risks: ["assets"],
+};
+
+/** Where to look at what was just imported. */
+const VIEW_ROUTE: Record<ImportEntity, string> = {
+  assets: "/assets",
+  "phi-types": "/phi-flow",
+  "data-flows": "/phi-flow",
+  vendors: "/vendors",
+  "access-grants": "/access",
+  threats: "/threats",
+  risks: "/risks",
+};
+
 type Stage = "idle" | "validated" | "imported";
 
 export default function ImportData() {
@@ -56,6 +80,8 @@ export default function ImportData() {
   const [localError, setLocalError] = useState<string | null>(null);
   const [stage, setStage] = useState<Stage>("idle");
   const fileInput = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const navigate = useNavigate();
 
   const validate = useValidateImport(entity);
   const commit = useRunImport(entity);
@@ -120,6 +146,9 @@ export default function ImportData() {
   const readyToImport = stage === "validated" && report?.valid === true && !busy;
   const imported = stage === "imported" && commit.report?.valid === true;
 
+  const labelOf = (slug: ImportEntity) => entities.data?.find(e => e.entity === slug)?.label ?? slug;
+  const prerequisites = DEPENDS_ON[entity] ?? [];
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -138,7 +167,7 @@ export default function ImportData() {
           {() => (
             <div className="flex flex-wrap items-end gap-3">
               <div>
-                <label htmlFor="entity" className="mb-1.5 block text-label-md text-primary">
+                <label htmlFor="entity" className="mb-1.5 block text-caption uppercase tracking-[0.08em] text-quaternary">
                   Record type
                 </label>
                 <Select
@@ -173,14 +202,25 @@ export default function ImportData() {
           )}
         </DataState>
 
+        {prerequisites.length > 0 && (
+          <div className="mt-4 flex items-start gap-2 rounded-lg bg-feedback-info-background px-3 py-2 text-body-sm text-feedback-info">
+            <AppIcon name="info" size="sm" className="mt-0.5 shrink-0" />
+            <span>
+              {labelOf(entity)} refer to {prerequisites.map(labelOf).join(" and ")} by name — import{" "}
+              {prerequisites.length === 1 ? "that" : "those"} first, or rows naming a record that does not exist yet
+              will be rejected.
+            </span>
+          </div>
+        )}
+
         {contract && (
-          <div className="mt-4 border-t border-default pt-3">
-            <div className="mb-2 text-label-md text-primary">Columns</div>
+          <div className="mt-4 border-t border-muted pt-3">
+            <div className="mb-2 text-caption uppercase tracking-[0.08em] text-quaternary">Columns</div>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
               {contract.columns.map(col => (
                 <span key={col.column} className="flex items-center gap-1.5 text-body-sm">
                   <span className="text-primary" title={col.column}>{columnLabel(col.column)}</span>
-                  <Badge tone={col.required ? "danger" : "muted"}>
+                  <Badge variant="soft" tone={col.required ? "warning" : "muted"}>
                     {col.required ? "Required" : "Optional"}
                   </Badge>
                   <span className="text-tertiary">{TYPE_LABEL[col.type]}</span>
@@ -197,7 +237,22 @@ export default function ImportData() {
           subtitle="The file is checked first. Nothing is written until you confirm."
         />
 
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Drop zone. The real <input> stays in the tree for keyboard and AT. */}
+        <label
+          onDragOver={e => { e.preventDefault(); if (!busy) setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={e => {
+            e.preventDefault();
+            setDragging(false);
+            if (!busy) void onPick(e.dataTransfer.files?.[0] ?? null);
+          }}
+          className={[
+            "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-7 text-center transition-colors",
+            "focus-within:ring-2 focus-within:ring-active",
+            dragging ? "border-active bg-raised-2" : "border-default bg-raised hover:border-active",
+            busy ? "pointer-events-none opacity-60" : "",
+          ].join(" ")}
+        >
           <input
             ref={fileInput}
             type="file"
@@ -205,15 +260,32 @@ export default function ImportData() {
             aria-label="CSV file"
             disabled={busy}
             onChange={e => void onPick(e.target.files?.[0] ?? null)}
-            className="text-body-sm text-primary file:mr-3 file:rounded-md file:border file:border-default file:bg-action file:px-3 file:py-1.5 file:text-label-sm file:text-primary"
+            className="sr-only"
           />
-          {file && (
-            <Btn variant="outline" onClick={clearFile} disabled={busy}>Clear</Btn>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-container text-icon-secondary">
+            <AppIcon name={file ? "document" : "upload"} size="md" />
+          </span>
+          {file ? (
+            <span className="text-body-md text-primary">{file.name}
+              <span className="ml-2 text-body-sm text-tertiary">{(file.size / 1024).toFixed(1)} KB</span>
+            </span>
+          ) : (
+            <span className="text-body-md text-primary">
+              Drop a CSV here, or <span className="underline underline-offset-2">choose a file</span>
+            </span>
           )}
-        </div>
+          <span className="text-caption font-normal text-tertiary">
+            {labelOf(entity)} · .csv up to 2MB · checked before anything is written
+          </span>
+        </label>
+        {file && (
+          <div className="mt-2 flex justify-end">
+            <Btn variant="ghost" onClick={clearFile} disabled={busy}>Clear</Btn>
+          </div>
+        )}
 
         {localError && (
-          <div role="alert" className="mt-3 rounded-md border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
+          <div role="alert" className="mt-3 rounded-lg border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
             {localError}
           </div>
         )}
@@ -221,7 +293,7 @@ export default function ImportData() {
         {busy && <div className="mt-4"><ChartSkeleton height={180} label="Checking the file" /></div>}
 
         {!busy && blocking && (
-          <div role="alert" className="mt-3 rounded-md border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
+          <div role="alert" className="mt-3 rounded-lg border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
             <span className="font-semibold">{describeApiError(blocking).title}.</span>{" "}
             {describeApiError(blocking).message}
           </div>
@@ -229,7 +301,7 @@ export default function ImportData() {
 
         {!busy && report && !report.valid && (
           <div className="mt-4 space-y-3">
-            <div role="alert" className="flex items-center gap-2 rounded-md border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
+            <div role="alert" className="flex items-center gap-2 rounded-lg border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
               <AppIcon name="threats" size="sm" />
               <span>
                 <span className="font-semibold">
@@ -244,7 +316,7 @@ export default function ImportData() {
 
         {!busy && report?.valid && !imported && (
           <div className="mt-4 space-y-3">
-            <div role="status" className="flex items-center gap-2 rounded-md border border-feedback-success-stroke bg-feedback-success-background px-3 py-2 text-body-sm text-feedback-success">
+            <div role="status" className="flex items-center gap-2 rounded-lg border border-feedback-success-stroke bg-feedback-success-background px-3 py-2 text-body-sm text-feedback-success">
               <AppIcon name="check" size="sm" />
               <span className="font-semibold">
                 {report.totalRows} row{report.totalRows === 1 ? "" : "s"} ready to import
@@ -264,7 +336,7 @@ export default function ImportData() {
 
         {!busy && imported && commit.report && (
           <div className="mt-4 space-y-3">
-            <div role="status" className="flex items-center gap-2 rounded-md border border-feedback-success-stroke bg-feedback-success-background px-3 py-2 text-body-sm text-feedback-success">
+            <div role="status" className="flex items-center gap-2 rounded-lg border border-feedback-success-stroke bg-feedback-success-background px-3 py-2 text-body-sm text-feedback-success">
               <AppIcon name="check" size="sm" />
               <span>
                 {/*
@@ -282,7 +354,13 @@ export default function ImportData() {
               </span>
             </div>
             <ImportPreviewTable rows={commit.report.preview} />
-            <Btn variant="outline" onClick={clearFile}>Import another file</Btn>
+            <div className="flex flex-wrap items-center gap-2">
+              <Btn variant="primary" onClick={() => navigate(VIEW_ROUTE[entity])}>
+                View {contract?.label ?? entity}
+                <AppIcon name="chevronRight" size="sm" />
+              </Btn>
+              <Btn variant="outline" onClick={clearFile}>Import another file</Btn>
+            </div>
           </div>
         )}
       </Card>

@@ -1,3 +1,4 @@
+import { BAND_FILL } from "@/lib/tone";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, Badge, Btn, SectionHeader, ChartSkeleton } from "@/components/ui-bits";
@@ -18,6 +19,7 @@ import { useAccessSummary } from "@/hooks/useAccess";
 import { useThreatSummary } from "@/hooks/useThreats";
 import type { Tone } from "@/lib/tone";
 import type { RiskBand } from "@/lib/apiTypes";
+import { LOCALE } from "@/lib/format";
 
 /**
  * Executive risk overview.
@@ -113,7 +115,7 @@ export default function Dashboard() {
         title: "Open critical threats",
         detail: "Detected and still unresolved",
         count: openCritical,
-        to: "/threats",
+        to: "/threats?severity=CRITICAL",
       });
     }
 
@@ -125,7 +127,7 @@ export default function Dashboard() {
         title: "Assets at extreme risk",
         detail: "Highest band the scoring engine assigns",
         count: extreme,
-        to: "/risks",
+        to: "/risks?band=EXTREME",
       });
     }
 
@@ -161,7 +163,7 @@ export default function Dashboard() {
         title: "Access grants flagged",
         detail: "Stale, over-privileged, unused or missing MFA",
         count: flagged,
-        to: "/access",
+        to: "/access?flaggedOnly=true",
       });
     }
 
@@ -187,6 +189,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-5">
       <PageHeader
+        icon="dashboard"
         title="Governance Overview"
         description="Where PHI lives, how it moves, who can reach it, and where the risk concentrates — computed live from the Drishti API."
         meta={
@@ -198,7 +201,7 @@ export default function Dashboard() {
               </span>
               Polling every 30s
             </span>
-            <span className="text-caption text-quaternary">Meridian Health</span>
+            <span className="text-caption text-quaternary">Drishti workspace</span>
           </>
         }
       />
@@ -208,14 +211,14 @@ export default function Dashboard() {
         <MetricCard
           label="Assets monitored"
           value={metrics.assets}
-          icon="database"
+          icon="database" domainIcon="asset"
           sub={metrics.totalFlows !== undefined ? `${metrics.totalFlows} PHI flows mapped` : undefined}
           onClick={() => navigate("/assets")}
         />
         <MetricCard
           label="Critical or extreme"
           value={metrics.criticalOrExtreme}
-          icon="threats"
+          icon="threats" domainIcon="risk"
           tone="danger"
           emphasis={Boolean(metrics.criticalOrExtreme)}
           sub={bandCounts ? `${bandCounts.EXTREME} extreme · ${bandCounts.CRITICAL} critical` : undefined}
@@ -223,15 +226,15 @@ export default function Dashboard() {
         />
         <MetricCard
           label="PHI records / day"
-          value={metrics.phiRecordsPerDay?.toLocaleString()}
-          icon="record"
+          value={metrics.phiRecordsPerDay?.toLocaleString(LOCALE)}
+          icon="record" domainIcon="phi"
           sub="across all mapped flows"
           onClick={() => navigate("/phi-flow")}
         />
         <MetricCard
           label="Unencrypted flows"
           value={metrics.unencryptedFlows}
-          icon="unlocked"
+          icon="unlocked" domainIcon="dataFlow"
           tone="danger"
           emphasis={Boolean(metrics.unencryptedFlows)}
           sub={metrics.totalFlows !== undefined ? `of ${metrics.totalFlows} total` : undefined}
@@ -239,27 +242,48 @@ export default function Dashboard() {
         />
       </section>
 
+      {/* WHAT NEEDS ATTENTION — first, because it is the reason anyone opens this page. */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        {/* RISK OVERVIEW */}
+        {/* ACTION CENTRE */}
         <Card className="p-4 xl:col-span-2">
           <SectionHeader
-            title="Risk Matrix"
-            subtitle="Every scored asset by likelihood and impact. Colour is the band the API derived."
-            action={
-              <Btn variant="outline" onClick={() => navigate("/risks")}>
-                Open register
-                <AppIcon name="chevronRight" size="sm" />
-              </Btn>
-            }
+            title="Action Centre"
+            subtitle="Unresolved findings across every connected source, worst first. Each one links to the records behind it."
           />
-          <DataState
-            query={listAsQuery(matrixRisks)}
-            height={360}
-            emptyTitle="No scored assets"
-            emptyMessage="Import assets and run a risk assessment to populate the matrix."
-          >
-            {data => <RiskMatrix risks={data} onSelect={() => navigate("/risks")} />}
-          </DataState>
+          {anyLoading ? (
+            <ChartSkeleton height={200} label="Gathering findings" />
+          ) : findings.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-feedback-success-background text-feedback-success-icon">
+                <AppIcon name="check" size="xl" />
+              </span>
+              <p className="text-body-md text-primary">Nothing needs attention</p>
+              <p className="max-w-sm text-body-sm text-tertiary">
+                No open critical threats, extreme risks, BAA gaps, unencrypted flows or flagged
+                access grants were returned by the API.
+              </p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-muted">
+              {findings.map(f => (
+                <li key={f.id}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(f.to)}
+                    className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-md px-2 py-3 text-left transition-colors hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-active"
+                  >
+                    <EntityAvatar icon={f.icon} tone={f.tone} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-body-md text-primary">{f.title}</span>
+                      <span className="block truncate text-caption text-tertiary">{f.detail}</span>
+                    </span>
+                    <Badge tone={f.tone}>{f.count}</Badge>
+                    <AppIcon name="chevronRight" size="sm" className="text-icon-quaternary" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
 
         {/* EXPOSURE */}
@@ -289,7 +313,7 @@ export default function Dashboard() {
                   : undefined
               }
               tone={metrics.flaggedGrants ? "warning" : "success"}
-              onClick={() => navigate("/access")}
+              onClick={() => navigate(metrics.flaggedGrants ? "/access?flaggedOnly=true" : "/access")}
             />
             <ExposureRow
               icon="threat"
@@ -307,13 +331,14 @@ export default function Dashboard() {
 
           {bandCounts && (
             <div className="mt-5 border-t border-muted pt-4">
-              <div className="mb-2 text-label-sm uppercase tracking-wide text-quaternary">
+              <div className="mb-2 text-caption uppercase tracking-[0.08em] text-quaternary">
                 Risk distribution
               </div>
               <MiniBar
                 segments={BAND_ORDER.map(b => ({
                   value: bandCounts[b],
                   tone: BAND_TONE[b],
+                  fill: BAND_FILL[b],
                   label: b,
                 }))}
               />
@@ -330,46 +355,26 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* ACTION CENTRE */}
+      {/* RISK OVERVIEW */}
       <Card className="p-4">
         <SectionHeader
-          title="Action Centre"
-          subtitle="Unresolved findings across every connected source, worst first. Each one links to the records behind it."
+          title="Risk Matrix"
+          subtitle="Every scored asset by likelihood and impact. Colour is the band the API derived."
+          action={
+            <Btn variant="outline" onClick={() => navigate("/risks")}>
+              Open register
+              <AppIcon name="chevronRight" size="sm" />
+            </Btn>
+          }
         />
-        {anyLoading ? (
-          <ChartSkeleton height={200} label="Gathering findings" />
-        ) : findings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-feedback-success-background text-feedback-success-icon">
-              <AppIcon name="check" size="xl" />
-            </span>
-            <p className="text-body-md text-primary">Nothing needs attention</p>
-            <p className="max-w-sm text-body-sm text-tertiary">
-              No open critical threats, extreme risks, BAA gaps, unencrypted flows or flagged
-              access grants were returned by the API.
-            </p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-muted">
-            {findings.map(f => (
-              <li key={f.id}>
-                <button
-                  type="button"
-                  onClick={() => navigate(f.to)}
-                  className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-raised-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
-                >
-                  <EntityAvatar icon={f.icon} tone={f.tone} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-body-md text-primary">{f.title}</span>
-                    <span className="block truncate text-caption text-tertiary">{f.detail}</span>
-                  </span>
-                  <Badge tone={f.tone}>{f.count}</Badge>
-                  <AppIcon name="chevronRight" size="sm" className="text-icon-quaternary" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <DataState
+          query={listAsQuery(matrixRisks)}
+          height={360}
+          emptyTitle="No scored assets"
+          emptyMessage="Import assets and run a risk assessment to populate the matrix."
+        >
+          {data => <RiskMatrix risks={data} onSelect={id => navigate(`/risks?open=${String(id).replace(/^R-0*/, "")}`)} />}
+        </DataState>
       </Card>
 
       {/*
@@ -395,7 +400,7 @@ function ExposureRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-md p-1 text-left transition-colors hover:bg-raised-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+      className="-mx-1 flex w-[calc(100%+0.5rem)] items-center gap-3 rounded-md p-1.5 text-left transition-colors hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-active"
     >
       <DomainIcon name={icon} size={18} className="text-icon-tertiary" />
       <span className="min-w-0 flex-1">

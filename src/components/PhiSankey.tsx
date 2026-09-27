@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { LOCALE } from "@/lib/format";
 
 /**
  * PHI flow, drawn as a volume-weighted Sankey.
@@ -36,8 +37,11 @@ const TONE_STROKE: Record<FlowTone, string> = {
 const STAGE_LABELS = ["Ingress", "Core system", "Downstream systems", "External recipients"];
 
 // Geometry. Cards are wide enough to hold a label; the gutters hold the ribbons.
-const CARD_W = 158;
-const GUTTER = 104;
+const CARD_W = 152;
+const GUTTER = 96;
+/* How far the map may shrink to fit before it scrolls instead. Below this
+   the 11.5px labels drop under ~9.5px and stop being comfortably legible. */
+const MIN_SCALE = 0.82;
 const H = 470;
 const NODE_GAP = 14;
 const TOP = 26;
@@ -123,7 +127,7 @@ export function PhiSankey({
     }).filter(Boolean) as (FlowLink & { d: string })[];
 
     const width = stages * CARD_W + (stages - 1) * GUTTER;
-    return { box, ribbons, width };
+    return { box, ribbons, width, stages };
   }, [nodes, links]);
 
   const dim = (id: string, from?: string, to?: string) =>
@@ -133,20 +137,22 @@ export function PhiSankey({
     <svg
       viewBox={`0 0 ${layout.width} ${H + TOP + 34}`}
       /*
-       * Never scale below 1:1. With w-full alone the viewBox shrank the map
-       * to the container, so at 390px the whole diagram rendered at about a
-       * third and every node label came out under 4px — present, but
-       * unreadable. The wrapper already scrolls horizontally; this lets it.
+       * Scale down a little to fit, never a lot. With w-full alone the
+       * viewBox shrank the map to the container, so at 390px the diagram
+       * rendered at about a third and every label came out under 4px. At
+       * 1:1 only, a five-stage estate clipped behind a scrollbar on an
+       * ordinary desktop. MIN_SCALE is the compromise; past it, the wrapper
+       * scrolls.
        */
-      style={{ minWidth: layout.width }}
+      style={{ minWidth: Math.round(layout.width * MIN_SCALE) }}
       className="h-[540px] w-full"
       role="img"
       aria-label="PHI data flow, sized by daily record volume"
     >
       {/* stage captions */}
-      {STAGE_LABELS.map((label, s) => (
+      {Array.from({ length: layout.stages }, (_, s) => STAGE_LABELS[s] ?? "Onward recipients").map((label, s) => (
         <text
-          key={label}
+          key={s}
           x={s * (CARD_W + GUTTER)}
           y={12}
           fill="var(--sem-text-quaternary)"
@@ -168,7 +174,7 @@ export function PhiSankey({
             opacity={dim("", r.from, r.to) ? 0.12 : r.tone === "violation" ? 0.5 : 0.34}
             style={{ transition: "opacity 200ms" }}
           >
-            <title>{`${r.value.toLocaleString()} PHI records/day`}</title>
+            <title>{`${r.value.toLocaleString(LOCALE)} PHI records/day`}</title>
           </path>
         ))}
       </g>
@@ -199,18 +205,19 @@ export function PhiSankey({
             <rect width="3" height={h} rx="1.5" fill={stroke} />
 
             <text x="11" y={h >= 40 ? 16 : h / 2 + 4} fill="var(--sem-text-primary)" fontSize="11.5" fontWeight="600">
-              {node.name}
+              {fitLabel(node.name, w - 20)}
             </text>
             {h >= 40 ? (
               <text x="11" y="30" fill="var(--sem-text-tertiary)" fontSize="10">
-                {(Number.isFinite(node.records) ? node.records : 0).toLocaleString()} rec/day
+                {(Number.isFinite(node.records) ? node.records : 0).toLocaleString(LOCALE)} rec/day
               </text>
-            ) : (
-              /* Too short for a second line: fold the volume onto the label row. */
+            ) : fitsBeside(node.name, recordsLabel(node.records), w) ? (
+              /* Too short for a second line: fold the volume onto the label row,
+                 but only when it will not collide with the name. */
               <text x={w - 9} y={h / 2 + 4} textAnchor="end" fill="var(--sem-text-tertiary)" fontSize="9.5">
-                {(Number.isFinite(node.records) ? node.records : 0).toLocaleString()}
+                {recordsLabel(node.records)}
               </text>
-            )}
+            ) : null}
             {h >= 58 && (
               <text
                 x="11" y="45"
@@ -220,12 +227,28 @@ export function PhiSankey({
                 {node.encryption === "AES-256" ? "AES-256" : "UNENCRYPTED"}
               </text>
             )}
-            <title>{`${node.name} · ${(Number.isFinite(node.records) ? node.records : 0).toLocaleString()} PHI records/day · ${node.encryption}`}</title>
+            <title>{`${node.name} · ${(Number.isFinite(node.records) ? node.records : 0).toLocaleString(LOCALE)} PHI records/day · ${node.encryption}`}</title>
           </g>
         );
       })}
     </svg>
   );
+}
+
+/* SVG text does not ellipsise, so labels are fitted by estimate. Geist at
+   11.5px averages ~6.3px per character in the bold weight used here. */
+const NAME_CHAR_W = 6.3;
+const COUNT_CHAR_W = 5.4;
+
+const recordsLabel = (records: number) => (Number.isFinite(records) ? records : 0).toLocaleString(LOCALE);
+
+function fitLabel(name: string, maxWidth: number): string {
+  const max = Math.floor(maxWidth / NAME_CHAR_W);
+  return name.length <= max ? name : `${name.slice(0, Math.max(1, max - 1)).trimEnd()}…`;
+}
+
+function fitsBeside(name: string, count: string, cardWidth: number): boolean {
+  return 11 + name.length * NAME_CHAR_W + 10 + count.length * COUNT_CHAR_W + 9 <= cardWidth;
 }
 
 export default PhiSankey;

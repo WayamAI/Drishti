@@ -14,6 +14,8 @@ import { describeApiError, toApiError } from "@/lib/apiErrors";
 import { notify } from "@/lib/notify";
 import type { ApiThreat, ThreatSeverity, ThreatStatus } from "@/lib/apiTypes";
 import type { Tone } from "@/lib/tone";
+import { LOCALE, DATETIME_OPTIONS } from "@/lib/format";
+import { remediationLink } from "@/lib/remediationLink";
 
 /**
  * Threat detection, with a real lifecycle.
@@ -144,7 +146,7 @@ export default function Threats() {
         <MetricCard
           label="Open threats"
           value={s?.open}
-          icon="threats"
+          icon="threats" domainIcon="threat"
           tone="danger"
           emphasis={Boolean(s?.open)}
           sub={s ? `of ${s.total} detected` : undefined}
@@ -152,7 +154,7 @@ export default function Threats() {
         <MetricCard
           label="Open critical"
           value={s?.openCritical}
-          icon="activity"
+          icon="activity" domainIcon="threat"
           tone="danger"
           emphasis={Boolean(s?.openCritical)}
         />
@@ -161,7 +163,7 @@ export default function Threats() {
       </div>
 
       {headline && (
-        <div className="flex flex-wrap items-center gap-3 rounded-md border border-feedback-error-stroke bg-feedback-error-background p-3">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-feedback-error-stroke bg-feedback-error-background p-3">
           <AppIcon name="threats" size="md" className="text-feedback-error" />
           <span className="text-body-md text-primary">
             <span className="font-semibold">Open critical:</span> {headline.title} on{" "}
@@ -297,7 +299,7 @@ function ThreatDrawer({ id, onClose }: { id: number | null; onClose: () => void 
             </div>
           </div>
 
-          <p className="rounded-md border border-default bg-raised-2 px-3 py-2.5 text-body-sm text-secondary">
+          <p className="rounded-lg bg-raised px-3 py-2.5 text-body-sm text-secondary">
             {t.description}
           </p>
 
@@ -305,13 +307,39 @@ function ThreatDrawer({ id, onClose }: { id: number | null; onClose: () => void 
             <Field label="Severity" value={t.severity} />
             <Field label="Status" value={STATUS_LABEL[t.status]} />
             <Field label="Affected system" value={t.assetName} />
-            <Field label="Detected" value={new Date(t.detectedAt).toLocaleString()} />
-            {t.resolvedAt && <Field label="Resolved" value={new Date(t.resolvedAt).toLocaleString()} />}
+            <Field label="Detected" value={new Date(t.detectedAt).toLocaleString(LOCALE, DATETIME_OPTIONS)} />
+            {t.resolvedAt && <Field label="Resolved" value={new Date(t.resolvedAt).toLocaleString(LOCALE, DATETIME_OPTIONS)} />}
           </FieldGroup>
 
-          <Btn variant="outline" className="w-full" onClick={() => navigate(`/assets?open=${t.assetId}`)}>
-            Open {t.assetName}
-          </Btn>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Btn variant="outline" className="w-full sm:w-auto sm:flex-1" onClick={() => navigate(`/assets?open=${t.assetId}`)}>
+              Open {t.assetName}
+            </Btn>
+            {/* Detected -> owned: the step from "we saw it" to "someone is fixing it". */}
+            {canWrite && t.status !== "RESOLVED" && t.status !== "FALSE_POSITIVE" && (
+              <Btn
+                variant="outline"
+                className="w-full sm:w-auto sm:flex-1"
+                onClick={() =>
+                  navigate(
+                    remediationLink({
+                      source: "THREAT",
+                      title: `Contain: ${t.title}`,
+                      description: t.description,
+                      recommendation: "Contain the activity, preserve the logs, and assess whether breach notification is required.",
+                      severity: t.severity,
+                      threatId: t.id,
+                      assetId: t.assetId,
+                      context: `the threat “${t.title}” on ${t.assetName}`,
+                    }),
+                  )
+                }
+              >
+                <AppIcon name="remediation" size="sm" />
+                Raise remediation
+              </Btn>
+            )}
+          </div>
         </div>
       )}
     </SlideOver>

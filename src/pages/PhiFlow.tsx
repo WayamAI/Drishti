@@ -1,13 +1,14 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, Badge, Btn, SectionHeader, SlideOver, Select } from "@/components/ui-bits";
+import { Card, Badge, Btn, SlideOver, Select } from "@/components/ui-bits";
 import { AppIcon } from "@/components/AppIcon";
 import { PhiSankey, type FlowNode, type FlowLink } from "@/components/PhiSankey";
 import { DataState } from "@/components/DataState";
 import { listAsQuery } from "@/components/DataTable";
-import { PageHeader, Field, FieldGroup, EntityAvatar } from "@/components/ui-patterns";
+import { PageHeader, Field, FieldGroup, EntityAvatar, MetricCard } from "@/components/ui-patterns";
 import { useDataFlows, useRawDataFlows } from "@/hooks/useDataFlows";
 import { notify } from "@/lib/notify";
+import { LOCALE } from "@/lib/format";
 
 /**
  * PHI flow map — where patient data actually moves.
@@ -170,7 +171,7 @@ export default function PhiFlow() {
       />
 
       {summary.firstViolation && (
-        <div className="flex flex-wrap items-center gap-3 rounded-md border border-feedback-error-stroke bg-feedback-error-background p-3">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-feedback-error-stroke bg-feedback-error-background p-3">
           <AppIcon name="threats" size="md" className="text-feedback-error" />
           <span className="text-body-md text-primary">
             <span className="font-semibold">
@@ -185,72 +186,77 @@ export default function PhiFlow() {
           >
             Inspect flow
           </Btn>
-          <Btn variant="outline" onClick={() => navigate("/assets")}>
+          <Btn
+            variant="outline"
+            onClick={() => navigate(`/assets?search=${encodeURIComponent(nameOf(summary.firstViolation!.from))}`)}
+          >
             Open affected asset
           </Btn>
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
-        {/*
-          min-w-0 matters here: a grid item defaults to min-width:auto, so
-          once the map carries a min-width the column would size to the map
-          rather than to 1fr — pushing the card past the viewport and
-          clipping the last stage instead of letting the wrapper scroll.
-        */}
-        <Card className="min-w-0 p-4">
-          <DataState
-            query={listAsQuery(flows)}
-            height={496}
-            emptyTitle="No PHI flows recorded"
-            emptyMessage="The API returned no data flows. If the backend was just set up, run the seed script."
-          >
-            {() => (
-              <div className="relative w-full overflow-x-auto" ref={chartRef}>
-                {filteredEdges.length === 0 ? (
-                  <p className="py-16 text-center text-body-sm text-tertiary">
-                    No flows match the current filters.
-                  </p>
-                ) : (
-                  <PhiSankey
-                    nodes={visibleNodes}
-                    links={filteredEdges}
-                    onSelect={id => setSelected(nodes.find(n => n.id === id) ?? null)}
-                  />
-                )}
-              </div>
-            )}
-          </DataState>
-          <div className="mt-2 flex flex-wrap items-center gap-4 border-t border-default pt-3 text-caption text-tertiary">
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-severity-low" /> Compliant</span>
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-severity-high" /> Warning</span>
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-severity-critical" /> Violation</span>
-            <span className="ml-auto">Node height and ribbon width are proportional to PHI records/day</span>
-          </div>
-        </Card>
+      {/*
+        The summary reads as a KPI row above the map rather than a column
+        beside it: beside it, the map lost 300px and the last stage was
+        clipped behind a scrollbar at ordinary desktop widths.
+      */}
+      <section aria-label="Flow summary" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <MetricCard label="Flows mapped" value={flows.data ? summary.total : undefined} sub={`${summary.compliant} compliant`} icon="phiFlow" domainIcon="dataFlow" />
+        <MetricCard
+          label="Violations"
+          value={flows.data ? summary.violations : undefined}
+          sub="unencrypted PHI in transit"
+          icon="unlocked" domainIcon="control"
+          tone="danger"
+          emphasis={summary.violations > 0}
+        />
+        <MetricCard
+          label="Warnings"
+          value={flows.data ? summary.warnings : undefined}
+          sub="flows needing review"
+          icon="warning" domainIcon="risk"
+          tone="warning"
+          emphasis={summary.warnings > 0}
+        />
+        <MetricCard
+          label="PHI in transit today"
+          value={flows.data ? summary.inTransit.toLocaleString(LOCALE) : undefined}
+          sub="records across all flows"
+          icon="record" domainIcon="phi"
+          onClick={() => navigate("/risks")}
+        />
+      </section>
 
-        <Card className="h-fit p-4">
-          <SectionHeader title="Flow Summary" />
-          <div className="space-y-2 text-body-md">
-            {[
-              ["Total flows", String(summary.total)],
-              ["Compliant", String(summary.compliant)],
-              ["Violations", String(summary.violations)],
-              ["Warnings", String(summary.warnings)],
-              ["PHI in transit today", summary.inTransit.toLocaleString()],
-            ].map(r => (
-              <div key={r[0]} className="flex justify-between">
-                <span className="text-tertiary">{r[0]}</span>
-                <span className="tabular font-medium text-primary">{r[1]}</span>
-              </div>
-            ))}
-          </div>
-          <Btn variant="outline" className="mt-4 w-full" onClick={() => navigate("/risks")}>
-            View risk register
-            <AppIcon name="chevronRight" size="sm" />
-          </Btn>
-        </Card>
-      </div>
+      <Card className="min-w-0 p-4">
+        <DataState
+          query={listAsQuery(flows)}
+          height={496}
+          emptyTitle="No PHI flows recorded"
+          emptyMessage="The API returned no data flows. If the backend was just set up, run the seed script."
+        >
+          {() => (
+            <div className="relative w-full overflow-x-auto" ref={chartRef}>
+              {filteredEdges.length === 0 ? (
+                <p className="py-16 text-center text-body-sm text-tertiary">
+                  No flows match the current filters.
+                </p>
+              ) : (
+                <PhiSankey
+                  nodes={visibleNodes}
+                  links={filteredEdges}
+                  onSelect={id => setSelected(nodes.find(n => n.id === id) ?? null)}
+                />
+              )}
+            </div>
+          )}
+        </DataState>
+        <div className="mt-2 flex flex-wrap items-center gap-4 border-t border-muted pt-3 text-caption text-tertiary">
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-severity-low" /> Compliant</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-severity-high" /> Warning</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-severity-critical" /> Violation</span>
+          <span className="ml-auto">Node height and ribbon width are proportional to PHI records/day</span>
+        </div>
+      </Card>
 
       {/* Node drawer — only fields the API actually returns. */}
       <SlideOver open={!!selected} onClose={() => setSelected(null)} title={selected?.name} width={380}>
@@ -267,13 +273,13 @@ export default function PhiFlow() {
                   {selected.status === "ok" ? "Compliant" : selected.status === "warn" ? "Warning" : "Violation"}
                 </Badge>
                 <p className="mt-1.5 text-body-sm text-tertiary">
-                  {selected.records.toLocaleString()} PHI records/day
+                  {selected.records.toLocaleString(LOCALE)} PHI records/day
                 </p>
               </div>
             </div>
 
             <FieldGroup>
-              <Field label="Records / day" value={selected.records.toLocaleString()} />
+              <Field label="Records / day" value={selected.records.toLocaleString(LOCALE)} />
               <Field
                 label="Encryption"
                 value={
@@ -296,7 +302,7 @@ export default function PhiFlow() {
                     label={f.phiType}
                     value={
                       <span className="flex items-center justify-end gap-2">
-                        <span className="tabular text-tertiary">{f.recordsPerDay.toLocaleString()}/day</span>
+                        <span className="tabular text-tertiary">{f.recordsPerDay.toLocaleString(LOCALE)}/day</span>
                         {!f.encrypted && <Badge tone="danger">Unencrypted</Badge>}
                       </span>
                     }

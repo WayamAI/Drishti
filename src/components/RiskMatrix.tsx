@@ -58,23 +58,21 @@ const BAND_CELL: Record<Band, string> = {
   extreme: "bg-matrix-extreme",
 };
 
-/* Ramp must escalate green -> blue -> amber -> orange -> red. Note the app's
-   severity tokens are inverted against their own names: --sem-solid-high is
-   amber and --sem-solid-medium is orange, so these are picked by colour. */
+/* One band, one colour, everywhere: the same --sem-band-* ramp as RiskBadge. */
 const BAND_CHIP: Record<Band, string> = {
-  low: "bg-solid-success text-on-solid-success",
-  moderate: "bg-solid-low text-on-solid-low",
-  high: "bg-solid-high text-on-solid-high",
-  critical: "bg-solid-medium text-on-solid-medium",
-  extreme: "bg-solid-critical text-on-solid-critical",
+  low: "bg-band-low text-band-content",
+  moderate: "bg-band-moderate text-band-content",
+  high: "bg-band-high text-band-content",
+  critical: "bg-band-critical text-band-content",
+  extreme: "bg-band-extreme text-band-content",
 };
 
 const BAND_SWATCH: Record<Band, string> = {
-  low: "bg-solid-success",
-  moderate: "bg-solid-low",
-  high: "bg-solid-high",
-  critical: "bg-solid-medium",
-  extreme: "bg-solid-critical",
+  low: "bg-band-low",
+  moderate: "bg-band-moderate",
+  high: "bg-band-high",
+  critical: "bg-band-critical",
+  extreme: "bg-band-extreme",
 };
 
 export function RiskMatrix({
@@ -141,7 +139,7 @@ export function RiskMatrix({
         <div className="flex min-w-[640px] gap-2">
           {/* Y axis caption */}
           <div className="flex w-6 items-center justify-center">
-            <span className="whitespace-nowrap text-caption font-medium uppercase tracking-wider text-tertiary"
+            <span className="whitespace-nowrap text-caption font-medium uppercase tracking-[0.08em] text-quaternary"
                   style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
               Likelihood
             </span>
@@ -176,7 +174,7 @@ export function RiskMatrix({
                       onMouseEnter={() => setHover({ l, i })}
                       onMouseLeave={() => setHover(null)}
                       className={cn(
-                        "relative min-h-[68px] flex-1 rounded-md border border-matrix-stroke p-1.5 transition-all duration-150",
+                        "relative min-h-[68px] flex-1 rounded-lg border border-matrix-stroke p-1.5 transition-all duration-150",
                         BAND_CELL[band],
                         (hover?.l === l || hover?.i === i) && "brightness-125",
                       )}
@@ -190,9 +188,9 @@ export function RiskMatrix({
                             title={`${r.id} · ${r.name}${r.cat ? ` · ${r.cat}` : ""} · L${cellIndex(r.L) + 1} x I${cellIndex(r.I) + 1} · ${BAND_LABEL[bandForRisk(r)]}`}
                             onClick={() => onSelect(r.id)}
                             className={cn(
-                              "tabular rounded px-1.5 py-0.5 text-caption font-semibold transition-transform duration-150 hover:scale-105",
+                              "tabular rounded-full px-2 py-0.5 text-caption font-medium transition-transform duration-150 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-active",
                               BAND_CHIP[bandForRisk(r)],
-                              highlightId === r.id && "ring-2 ring-brand ring-offset-1 ring-offset-raised",
+                              highlightId === r.id && "ring-2 ring-active ring-offset-1 ring-offset-raised",
                               r.status === "Closed" && "opacity-45 line-through",
                             )}
                           >
@@ -222,7 +220,7 @@ export function RiskMatrix({
                 </div>
               ))}
             </div>
-            <div className="mt-1 pl-28 text-center text-caption font-medium uppercase tracking-wider text-tertiary">
+            <div className="mt-1 pl-28 text-center text-caption font-medium uppercase tracking-[0.08em] text-quaternary">
               Impact
             </div>
           </div>

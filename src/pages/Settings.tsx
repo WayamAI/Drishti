@@ -5,6 +5,7 @@ import { useOrganization } from "@/hooks/useGovernance";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/hooks/use-auth";
 import { getApiBaseUrl } from "@/lib/apiClient";
+import { LOCALE, DATE_OPTIONS } from "@/lib/format";
 
 /**
  * Settings.
@@ -35,10 +36,10 @@ export default function Settings() {
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Assets" value={counts.assets} icon="database" />
-        <MetricCard label="Vendors" value={counts.vendors} icon="facility" />
-        <MetricCard label="Identities" value={counts.identities} icon="identity" />
-        <MetricCard label="Members" value={counts.members} icon="access" />
+        <MetricCard label="Assets" value={counts.assets} icon="database" domainIcon="asset" />
+        <MetricCard label="Vendors" value={counts.vendors} icon="facility" domainIcon="vendor" />
+        <MetricCard label="Identities" value={counts.identities} icon="identity" domainIcon="identity" />
+        <MetricCard label="Members" value={counts.members} icon="access" domainIcon="identity" />
       </div>
 
       <Card className="p-4">
@@ -49,7 +50,7 @@ export default function Settings() {
           <Field label="Your role" value={org.data ? <Badge tone="info">{org.data.yourRole}</Badge> : "…"} />
           <Field
             label="Created"
-            value={org.data ? new Date(org.data.createdAt).toLocaleDateString() : "…"}
+            value={org.data ? new Date(org.data.createdAt).toLocaleDateString(LOCALE, DATE_OPTIONS) : "…"}
           />
         </FieldGroup>
         <p className="mt-3 text-caption text-tertiary">

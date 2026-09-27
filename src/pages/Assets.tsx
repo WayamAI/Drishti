@@ -15,6 +15,7 @@ import { useCanWrite } from "@/hooks/use-auth";
 import { describeApiError, toApiError } from "@/lib/apiErrors";
 import { notify } from "@/lib/notify";
 import { ASSET_TYPES, type ApiAsset, type AssetType, type RiskBand } from "@/lib/apiTypes";
+import { LOCALE, DATE_OPTIONS } from "@/lib/format";
 
 /**
  * Asset inventory — the first step of the Drishti model.
@@ -35,7 +36,7 @@ const TYPE_LABEL: Record<AssetType, string> = {
 };
 
 const fmtDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "Never";
+  iso ? new Date(iso).toLocaleDateString(LOCALE, DATE_OPTIONS) : "Never";
 
 const daysSince = (iso: string | null) =>
   iso === null ? null : Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
@@ -113,7 +114,7 @@ export default function Assets() {
       header: "PHI records",
       align: "right",
       sortValue: a => a.phiVolume,
-      cell: a => a.phiVolume.toLocaleString(),
+      cell: a => a.phiVolume.toLocaleString(LOCALE),
     },
     {
       id: "protection",
@@ -122,10 +123,10 @@ export default function Assets() {
       sortValue: a => Number(a.encrypted) + Number(a.mfaEnabled),
       cell: a => (
         <div className="flex flex-wrap items-center gap-1">
-          <Badge tone={a.encrypted ? "success" : "danger"}>
+          <Badge variant="soft" tone={a.encrypted ? "success" : "danger"}>
             {a.encrypted ? "Encrypted" : "Unencrypted"}
           </Badge>
-          {!a.mfaEnabled && <Badge tone="warning">No MFA</Badge>}
+          {!a.mfaEnabled && <Badge variant="soft" tone="warning">No MFA</Badge>}
         </div>
       ),
     },
@@ -182,17 +183,17 @@ export default function Assets() {
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Assets" value={stats?.total} icon="database" />
+        <MetricCard label="Assets" value={stats?.total} icon="database" domainIcon="asset" />
         <MetricCard
           label="PHI records"
-          value={stats ? stats.phiRecords.toLocaleString() : undefined}
-          icon="record"
+          value={stats ? stats.phiRecords.toLocaleString(LOCALE) : undefined}
+          icon="record" domainIcon="phi"
           sub="across all assets"
         />
         <MetricCard
           label="Unencrypted"
           value={stats?.unencrypted}
-          icon="unlocked"
+          icon="unlocked" domainIcon="control"
           tone="danger"
           emphasis={Boolean(stats?.unencrypted)}
           sub={stats ? `${stats.noMfa} without MFA` : undefined}
@@ -200,7 +201,7 @@ export default function Assets() {
         <MetricCard
           label="Critical or extreme"
           value={stats?.criticalOrExtreme}
-          icon="threats"
+          icon="threats" domainIcon="risk"
           tone="danger"
           emphasis={Boolean(stats?.criticalOrExtreme)}
           sub={stats?.unscored ? `${stats.unscored} not yet scored` : undefined}
@@ -322,7 +323,7 @@ function AssetDrawer({ id, onClose, canWrite }: { id: number | null; onClose: ()
                 </Badge>
               </div>
               <p className="mt-1.5 text-body-sm text-tertiary">
-                {TYPE_LABEL[a.type]} · {a.phiVolume.toLocaleString()} PHI records
+                {TYPE_LABEL[a.type]} · {a.phiVolume.toLocaleString(LOCALE)} PHI records
               </p>
             </div>
           </div>
@@ -345,7 +346,7 @@ function AssetDrawer({ id, onClose, canWrite }: { id: number | null; onClose: ()
             <TabPanel>
               <FieldGroup>
                 <Field label="Type" value={TYPE_LABEL[a.type]} />
-                <Field label="PHI records" value={a.phiVolume.toLocaleString()} />
+                <Field label="PHI records" value={a.phiVolume.toLocaleString(LOCALE)} />
                 <Field label="Encryption" value={a.encrypted ? "Enabled" : "Not enabled"} />
                 <Field label="MFA" value={a.mfaEnabled ? "Enforced" : "Not enforced"} />
                 <Field label="Last assessed" value={fmtDate(a.lastAssessedAt)} />
@@ -406,13 +407,13 @@ function AssetDrawer({ id, onClose, canWrite }: { id: number | null; onClose: ()
               ) : (
                 <div className="space-y-2">
                   {a.phiTypes.map(p => (
-                    <div key={p.id} className="flex items-center justify-between gap-3 rounded-md border border-default p-2.5">
+                    <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg border border-muted p-2.5">
                       <div className="flex min-w-0 items-center gap-2.5">
                         <DomainIcon name="phi" size={18} className="text-icon-tertiary" />
                         <div className="min-w-0">
                           <div className="truncate text-body-md text-primary">{p.name}</div>
                           <div className="text-caption text-tertiary">
-                            {p.recordsPerDay.toLocaleString()} records/day
+                            {p.recordsPerDay.toLocaleString(LOCALE)} records/day
                           </div>
                         </div>
                       </div>
@@ -444,7 +445,7 @@ function AssetDrawer({ id, onClose, canWrite }: { id: number | null; onClose: ()
                       key={g.id}
                       type="button"
                       onClick={() => navigate(`/access?search=${encodeURIComponent(g.identityName)}`)}
-                      className="flex w-full items-center justify-between gap-3 rounded-md border border-default p-2.5 text-left transition-colors hover:border-active"
+                      className="flex w-full items-center justify-between gap-3 rounded-lg border border-muted p-2.5 text-left transition-colors hover:border-default hover:bg-raised"
                     >
                       <span className="flex min-w-0 items-center gap-2.5">
                         <EntityAvatar icon="identity" tone={g.active ? "muted" : "danger"} size="sm" />
@@ -481,7 +482,7 @@ function AssetDrawer({ id, onClose, canWrite }: { id: number | null; onClose: ()
                       key={v.id}
                       type="button"
                       onClick={() => navigate(`/vendors?open=${v.id}`)}
-                      className="flex w-full items-center justify-between gap-3 rounded-md border border-default p-2.5 text-left transition-colors hover:border-active"
+                      className="flex w-full items-center justify-between gap-3 rounded-lg border border-muted p-2.5 text-left transition-colors hover:border-default hover:bg-raised"
                     >
                       <span className="flex min-w-0 items-center gap-2.5">
                         <EntityAvatar icon="vendor" tone={v.baaStatus === "SIGNED" ? "success" : "danger"} size="sm" />
@@ -513,7 +514,7 @@ function AssetDrawer({ id, onClose, canWrite }: { id: number | null; onClose: ()
                       key={t.id}
                       type="button"
                       onClick={() => navigate(`/threats?open=${t.id}`)}
-                      className="flex w-full items-center justify-between gap-3 rounded-md border border-default p-2.5 text-left transition-colors hover:border-active"
+                      className="flex w-full items-center justify-between gap-3 rounded-lg border border-muted p-2.5 text-left transition-colors hover:border-default hover:bg-raised"
                     >
                       <span className="flex min-w-0 items-center gap-2.5">
                         <EntityAvatar
@@ -571,7 +572,7 @@ function FlowList({
               <span className="truncate text-body-sm text-primary">{f.name}</span>
             </span>
             <span className="flex flex-shrink-0 items-center gap-2">
-              <span className="tabular text-caption text-tertiary">{f.recordsPerDay.toLocaleString()}/day</span>
+              <span className="tabular text-caption text-tertiary">{f.recordsPerDay.toLocaleString(LOCALE)}/day</span>
               {!f.encrypted && <Badge tone="danger">Unencrypted</Badge>}
             </span>
           </div>
@@ -594,7 +595,7 @@ function AssetForm({
   return (
     <div className="space-y-3">
       <label className="block">
-        <span className="mb-1 block text-label-md text-primary">Name</span>
+        <span className="mb-1 block text-caption uppercase tracking-[0.08em] text-quaternary">Name</span>
         <Input
           value={state.name}
           onChange={e => setState({ ...state, name: e.target.value })}
@@ -605,7 +606,7 @@ function AssetForm({
         />
       </label>
       <label className="block">
-        <span className="mb-1 block text-label-md text-primary">Type</span>
+        <span className="mb-1 block text-caption uppercase tracking-[0.08em] text-quaternary">Type</span>
         <Select
           value={state.type}
           onChange={e => setState({ ...state, type: e.target.value as AssetType })}
@@ -616,7 +617,7 @@ function AssetForm({
         </Select>
       </label>
       <label className="block">
-        <span className="mb-1 block text-label-md text-primary">PHI records</span>
+        <span className="mb-1 block text-caption uppercase tracking-[0.08em] text-quaternary">PHI records</span>
         <Input
           type="number"
           min={0}
@@ -627,7 +628,7 @@ function AssetForm({
         />
       </label>
       <label className="block">
-        <span className="mb-1 block text-label-md text-primary">Last assessed</span>
+        <span className="mb-1 block text-caption uppercase tracking-[0.08em] text-quaternary">Last assessed</span>
         <Input
           type="date"
           value={state.lastAssessedAt}
@@ -690,7 +691,7 @@ function CreateAssetModal({ onClose }: { onClose: () => void }) {
     <Modal open onClose={onClose} title="New asset" size="md">
       <AssetForm state={state} setState={setState} disabled={create.isPending} />
       {error && (
-        <div role="alert" className="mt-3 rounded-md border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
+        <div role="alert" className="mt-3 rounded-lg border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
           {error}
         </div>
       )}
@@ -741,7 +742,7 @@ function EditAssetModal({
     <Modal open onClose={onClose} title={`Edit ${asset.name}`} size="md">
       <AssetForm state={state} setState={setState} disabled={update.isPending} />
       {error && (
-        <div role="alert" className="mt-3 rounded-md border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
+        <div role="alert" className="mt-3 rounded-lg border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
           {error}
         </div>
       )}

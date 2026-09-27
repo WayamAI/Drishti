@@ -49,13 +49,16 @@ export function SidebarItem({ item, collapsed = false }: { item: SidebarNavItem;
       aria-label={item.label}
       // The label is only worth a tooltip when the sidebar has hidden it.
       title={collapsed ? item.label : undefined}
-      className={({ isActive }) =>
-        cn(
-          "group relative mb-0.5 flex items-center gap-3 rounded-lg py-1.5 transition-colors duration-200",
-          collapsed ? "justify-center px-0" : "px-2",
-          isActive ? "bg-action-secondary-hover" : "hover:bg-action-tertiary-hover",
-        )
-      }
+      /*
+       * Chronos rail: the puck carries the state. Active is a solid puck and a
+       * primary label; there is no row fill, so the rail stays quiet and the
+       * one dark circle is the only thing that says "you are here".
+       */
+      className={cn(
+        "group relative flex items-center rounded-full outline-none transition-colors duration-200",
+        "focus-visible:ring-2 focus-visible:ring-active",
+        collapsed ? "justify-center" : "w-full gap-3 pr-2",
+      )}
     >
       {({ isActive }) => (
         <>
@@ -64,13 +67,13 @@ export function SidebarItem({ item, collapsed = false }: { item: SidebarNavItem;
               "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-200",
               isActive
                 ? "bg-action-primary text-icon-on-color"
-                : "bg-action text-icon-tertiary group-hover:bg-action-secondary-focused group-hover:text-icon-secondary",
+                : "bg-action text-icon-tertiary group-hover:bg-raised-2 group-hover:text-icon-secondary",
             )}
           >
             {item.domainIcon
-              ? <DomainIcon name={item.domainIcon} size={18} />
+              ? <DomainIcon name={item.domainIcon} size={17} />
               : item.icon
-                ? <AppIcon name={item.icon} size="lg" />
+                ? <AppIcon name={item.icon} size="md" />
                 : null}
 
             {/* Collapsed: the count has nowhere to sit, so it becomes a dot. */}
@@ -89,7 +92,7 @@ export function SidebarItem({ item, collapsed = false }: { item: SidebarNavItem;
             <>
               <span
                 className={cn(
-                  "flex-1 truncate text-label-md transition-colors duration-200",
+                  "flex-1 truncate text-label-sm transition-colors duration-200",
                   isActive ? "text-primary" : "text-tertiary group-hover:text-secondary",
                 )}
               >
@@ -99,8 +102,8 @@ export function SidebarItem({ item, collapsed = false }: { item: SidebarNavItem;
               {showBadge && (
                 <span
                   className={cn(
-                    "tabular rounded-full px-1.5 py-0.5 text-caption font-semibold text-white",
-                    item.badgeTone === "danger" ? "bg-severity-critical" : "bg-severity-high",
+                    "tabular min-w-5 rounded-full px-1.5 py-0.5 text-center text-caption font-medium",
+                    item.badgeTone === "danger" ? "bg-solid-error text-on-solid-error" : "bg-solid-warning text-on-solid-warning",
                   )}
                 >
                   {item.badge}

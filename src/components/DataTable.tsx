@@ -7,6 +7,7 @@ import type { IconName } from "@/lib/icons";
 import { DataState } from "@/components/DataState";
 import type { ApiQueryResult, ApiListResult } from "@/hooks/useApiQuery";
 import type { PageMeta } from "@/lib/apiClient";
+import { LOCALE } from "@/lib/format";
 
 /**
  * The one table in Drishti.
@@ -248,7 +249,7 @@ function DataTableInner<T>({
    * 25 of 500 rows is the same lie as a count that describes the page — so
    * the affordance is withdrawn rather than left to mislead. Server-side
    * sorting is available on some endpoints (assets, risks) and is the right
-   * way to restore it; see DATATABLE_MIGRATION_BACKLOG.md.
+   * way to restore it: send `sort`/`order` to the API instead.
    */
   const sortable = (col: Column<T>) =>
     Boolean(col.sortValue) && (!server || (server.meta?.totalPages ?? 1) <= 1);
@@ -322,7 +323,7 @@ function DataTableInner<T>({
                 <div
                   role="menu"
                   aria-label="Toggle columns"
-                  className="absolute right-0 top-full z-30 mt-1 min-w-[190px] overflow-hidden rounded-md border border-default bg-raised py-1 shadow-panel"
+                  className="absolute right-0 top-full z-30 mt-1.5 min-w-[200px] overflow-hidden rounded-lg border border-muted bg-container p-1.5 shadow-panel"
                 >
                   {columns.map(c => {
                     const on = !hidden.has(c.id);
@@ -342,7 +343,7 @@ function DataTableInner<T>({
                             return next;
                           })
                         }
-                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-body-sm text-secondary transition-colors hover:bg-action hover:text-primary"
+                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body-sm text-secondary transition-colors hover:bg-action hover:text-primary"
                       >
                         <span className={cn("flex h-3.5 w-3.5 items-center justify-center rounded-[3px] border", on ? "border-transparent bg-action-primary text-on-color" : "border-default")}>
                           {on && <AppIcon name="check" size="xs" />}
@@ -371,11 +372,11 @@ function DataTableInner<T>({
         />
       ) : (
         <>
-          <div className="overflow-x-auto rounded-lg border border-default">
+          <div className="overflow-x-auto rounded-lg border border-muted">
             <table className="w-full min-w-[640px] border-collapse text-body-sm">
               <caption className="sr-only">{label}</caption>
-              <thead className="sticky top-0 z-10 bg-raised-2">
-                <tr className="border-b border-default">
+              <thead className="sticky top-0 z-10 bg-container">
+                <tr className="border-b border-muted">
                   {visible.map(c => {
                     const active = sort?.columnId === c.id;
                     const ariaSort = active ? (sort!.direction === "asc" ? "ascending" : "descending") : "none";
@@ -385,7 +386,7 @@ function DataTableInner<T>({
                         scope="col"
                         aria-sort={sortable(c) ? (ariaSort as "ascending" | "descending" | "none") : undefined}
                         className={cn(
-                          "px-3 py-2.5 text-label-sm font-semibold uppercase tracking-wide text-tertiary",
+                          "px-3 py-2 text-caption font-medium uppercase tracking-[0.08em] text-quaternary",
                           c.align === "right" ? "text-right" : "text-left",
                           c.width,
                           c.hideBelow && HIDE_BELOW[c.hideBelow],
@@ -396,8 +397,8 @@ function DataTableInner<T>({
                             type="button"
                             onClick={() => toggleSort(c)}
                             className={cn(
-                              "inline-flex items-center gap-1 rounded transition-colors hover:text-primary",
-                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+                              "inline-flex items-center gap-1 rounded uppercase tracking-[0.08em] transition-colors hover:text-secondary",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-active",
                               c.align === "right" && "flex-row-reverse",
                               active && "text-primary",
                             )}
@@ -406,7 +407,7 @@ function DataTableInner<T>({
                             <AppIcon
                               name={active ? (sort!.direction === "asc" ? "arrowUp" : "arrowDown") : "chevronDown"}
                               size="xs"
-                              className={active ? "text-brand" : "opacity-40"}
+                              className={active ? "text-icon-primary" : "opacity-40"}
                             />
                           </button>
                         ) : (
@@ -433,15 +434,15 @@ function DataTableInner<T>({
                       aria-current={activeRow ? "true" : undefined}
                       className={cn(
                         "border-b border-muted transition-colors last:border-0",
-                        clickable && "cursor-pointer hover:bg-raised-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand",
-                        activeRow && "bg-raised-2",
+                        clickable && "cursor-pointer hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-active",
+                        activeRow && "bg-raised",
                       )}
                     >
                       {visible.map(c => (
                         <td
                           key={c.id}
                           className={cn(
-                            "px-3 py-2.5 align-middle text-primary",
+                            "px-3 py-2.5 align-middle text-body-md text-primary",
                             c.align === "right" && "text-right tabular",
                             c.hideBelow && HIDE_BELOW[c.hideBelow],
                           )}
@@ -469,7 +470,7 @@ function DataTableInner<T>({
                     ? "No rows"
                     : `${(server.meta.page - 1) * server.meta.pageSize + 1}–` +
                       `${Math.min(server.meta.page * server.meta.pageSize, server.meta.total)}` +
-                      ` of ${server.meta.total.toLocaleString()}`
+                      ` of ${server.meta.total.toLocaleString(LOCALE)}`
                   : "…"}
               </span>
             ) : (
@@ -488,7 +489,7 @@ function DataTableInner<T>({
                     <select
                       value={server.pageSize}
                       onChange={e => server.onPageSizeChange!(Number(e.target.value))}
-                      className="rounded border border-default bg-action px-1.5 py-0.5 text-caption text-secondary"
+                      className="h-7 rounded-full border border-muted bg-action px-2.5 text-caption text-secondary"
                       aria-label="Rows per page"
                     >
                       {PAGE_SIZES.map(n => <option key={n} value={n}>{n} / page</option>)}

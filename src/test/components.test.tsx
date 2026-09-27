@@ -112,14 +112,15 @@ describe("risk band colour ramp", () => {
   };
 
   it("escalates Low -> Moderate -> High -> Critical -> Extreme", () => {
-    expect(chipClassFor("LOW")).toContain("bg-solid-success");        // green
-    expect(chipClassFor("MODERATE")).toContain("bg-solid-low");       // blue
-    expect(chipClassFor("HIGH")).toContain("bg-solid-high");          // amber
-    expect(chipClassFor("CRITICAL")).toContain("bg-solid-medium");    // orange
-    expect(chipClassFor("EXTREME")).toContain("bg-solid-critical");   // red
+    expect(chipClassFor("LOW")).toContain("bg-band-low");             // green
+    expect(chipClassFor("MODERATE")).toContain("bg-band-moderate");   // amber
+    expect(chipClassFor("HIGH")).toContain("bg-band-high");           // orange
+    expect(chipClassFor("CRITICAL")).toContain("bg-band-critical");   // red
+    expect(chipClassFor("EXTREME")).toContain("bg-band-extreme");     // deep red
   });
 
-  it("never gives High and Critical the same fill", () => {
+  it("never gives two bands the same fill", () => {
     expect(chipClassFor("HIGH")).not.toBe(chipClassFor("CRITICAL"));
+    expect(chipClassFor("CRITICAL")).not.toBe(chipClassFor("EXTREME"));
   });
 });

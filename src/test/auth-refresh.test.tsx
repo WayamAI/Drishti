@@ -29,7 +29,7 @@ const session = (token: string) => ({
   data: {
     token,
     expiresIn: 3600,
-    user: { id: 1, email: "admin@meridian.org", role: "ADMIN", organizationId: 1 },
+    user: { id: 1, email: "admin@drishti.ai", role: "ADMIN", organizationId: 1 },
   },
 });
 
@@ -81,7 +81,7 @@ function Probe({ onReady }: { onReady?: (fns: { call: () => Promise<unknown> }) 
       <span data-testid="auth">{isAuthenticated ? "yes" : "no"}</span>
       <span data-testid="email">{user?.email ?? ""}</span>
       <span data-testid="err">{err}</span>
-      <button onClick={() => void login("admin@meridian.org", "pw")}>signin</button>
+      <button onClick={() => void login("admin@drishti.ai", "pw")}>signin</button>
       <button onClick={() => logout()}>signout</button>
     </div>
   );
@@ -105,7 +105,7 @@ describe("boot refresh — the server answers", () => {
     mount();
     await settled();
     expect(screen.getByTestId("state").textContent).toBe("authenticated");
-    expect(screen.getByTestId("email").textContent).toBe("admin@meridian.org");
+    expect(screen.getByTestId("email").textContent).toBe("admin@drishti.ai");
   });
 
   it("401 leaves the user signed out", async () => {
@@ -154,7 +154,7 @@ describe("mid-session refresh — the question goes unanswered", () => {
     await signInThenRefreshWith(async () =>
       json({ error: { code: "RATE_LIMITED" } }, 429, { "Retry-After": "900" }));
     expect(screen.getByTestId("state").textContent).toBe("authenticated");
-    expect(screen.getByTestId("email").textContent).toBe("admin@meridian.org");
+    expect(screen.getByTestId("email").textContent).toBe("admin@drishti.ai");
   });
 
   it("500 keeps the user signed in", async () => {
@@ -297,7 +297,7 @@ describe("a stale refresh cannot move the session", () => {
     });
 
     expect(screen.getByTestId("auth").textContent).toBe("yes");
-    expect(screen.getByTestId("email").textContent).toBe("admin@meridian.org");
+    expect(screen.getByTestId("email").textContent).toBe("admin@drishti.ai");
   });
 
   it("no automatic refresh runs after an explicit logout", async () => {

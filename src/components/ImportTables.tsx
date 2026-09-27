@@ -1,11 +1,12 @@
 import { Badge } from "@/components/ui-bits";
 import type { ImportRowError } from "@/lib/apiTypes";
+import { LOCALE } from "@/lib/format";
 
 /** Renders a parsed cell without inventing anything the server did not send. */
 function cell(value: unknown): string {
   if (value === null || value === undefined) return "—";
   if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (typeof value === "number") return value.toLocaleString();
+  if (typeof value === "number") return value.toLocaleString(LOCALE);
   if (typeof value === "string") {
     // The server hands dates back as ISO instants. A date-only column reads
     // better without the midnight that is an artefact of the encoding.
@@ -33,14 +34,14 @@ export function ImportPreviewTable({ rows }: { rows: Record<string, unknown>[] }
     <div className="overflow-x-auto">
       <table className="w-full text-body-sm">
         <thead>
-          <tr className="border-b border-default text-left text-caption uppercase tracking-wider text-tertiary">
+          <tr className="border-b border-muted text-left text-caption font-medium uppercase tracking-[0.08em] text-quaternary">
             <th className="px-2 py-2 font-normal">#</th>
             {columns.map(c => <th key={c} className="px-2 py-2 font-normal">{c}</th>)}
           </tr>
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b border-default last:border-0">
+            <tr key={i} className="border-b border-muted last:border-0">
               <td className="px-2 py-2 tabular text-tertiary">{i + 1}</td>
               {columns.map(c => (
                 <td key={c} className="px-2 py-2 text-primary">{cell(row[c])}</td>
@@ -76,7 +77,7 @@ export function ImportErrorTable({ errors }: { errors: ImportRowError[] }) {
     <div className="overflow-x-auto">
       <table className="w-full text-body-sm">
         <thead>
-          <tr className="border-b border-default text-left text-caption uppercase tracking-wider text-tertiary">
+          <tr className="border-b border-muted text-left text-caption font-medium uppercase tracking-[0.08em] text-quaternary">
             <th className="px-2 py-2 font-normal">File line</th>
             <th className="px-2 py-2 font-normal">Field</th>
             <th className="px-2 py-2 font-normal">Problem</th>
@@ -85,7 +86,7 @@ export function ImportErrorTable({ errors }: { errors: ImportRowError[] }) {
         <tbody>
           {rows.map(([row, list]) =>
             list.map((err, i) => (
-              <tr key={`${row}-${err.field}-${i}`} className="border-b border-default last:border-0">
+              <tr key={`${row}-${err.field}-${i}`} className="border-b border-muted last:border-0">
                 <td className="px-2 py-2 tabular text-primary">
                   {i === 0 ? row : ""}
                 </td>

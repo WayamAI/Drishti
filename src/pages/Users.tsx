@@ -5,6 +5,7 @@ import { PageHeader, MetricCard, FilterBar, EntityAvatar } from "@/components/ui
 import { useIdentities, useOrgMembers, useOrganization } from "@/hooks/useGovernance";
 import { useListControls } from "@/hooks/useListControls";
 import type { ApiIdentity } from "@/lib/apiTypes";
+import { LOCALE, DATE_OPTIONS } from "@/lib/format";
 
 /**
  * People and service accounts known to the organisation.
@@ -53,7 +54,7 @@ export default function Users() {
       hideBelow: "sm",
       sortValue: i => i.kind,
       cell: i => (
-        <Badge tone={i.kind === "SERVICE_ACCOUNT" ? "info" : "muted"}>
+        <Badge variant="soft" tone={i.kind === "SERVICE_ACCOUNT" ? "info" : "muted"}>
           {i.kind === "SERVICE_ACCOUNT" ? "Service" : "User"}
         </Badge>
       ),
@@ -78,8 +79,8 @@ export default function Users() {
       hideBelow: "lg",
       sortValue: i => Number(i.mfaEnabled),
       cell: i => i.mfaEnabled
-        ? <Badge tone="success">Enabled</Badge>
-        : <Badge tone="warning">Not enabled</Badge>,
+        ? <Badge variant="soft" tone="success">Enabled</Badge>
+        : <Badge variant="soft" tone="warning">Not enabled</Badge>,
     },
     {
       id: "status",
@@ -106,10 +107,10 @@ export default function Users() {
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Identities" value={identities.meta?.total} icon="identity" />
-        <MetricCard label="Drishti members" value={members.data?.length} icon="access" />
-        <MetricCard label="Assets" value={org.data?.counts.assets} icon="database" />
-        <MetricCard label="Organisation" value={org.data?.name} icon="facility" />
+        <MetricCard label="Identities" value={identities.meta?.total} icon="identity" domainIcon="identity" />
+        <MetricCard label="Drishti members" value={members.data?.length} icon="access" domainIcon="identity" />
+        <MetricCard label="Assets" value={org.data?.counts.assets} icon="database" domainIcon="asset" />
+        <MetricCard label="Organisation" value={org.data?.name} icon="facility" domainIcon="dashboard" />
       </div>
 
       <Card className="p-4">
@@ -168,9 +169,9 @@ export default function Users() {
                 </span>
                 <span className="flex flex-shrink-0 items-center gap-3">
                   <span className="text-caption text-tertiary">
-                    since {new Date(m.memberSince).toLocaleDateString()}
+                    since {new Date(m.memberSince).toLocaleDateString(LOCALE, DATE_OPTIONS)}
                   </span>
-                  <Badge tone={m.role === "ADMIN" ? "danger" : m.role === "ANALYST" ? "warning" : "muted"}>
+                  <Badge variant="soft" tone={m.role === "ADMIN" ? "danger" : m.role === "ANALYST" ? "warning" : "muted"}>
                     {m.role}
                   </Badge>
                 </span>

@@ -14,6 +14,8 @@ import { describeApiError, toApiError } from "@/lib/apiErrors";
 import { notify } from "@/lib/notify";
 import type { ApiPolicy, PolicyStatus } from "@/lib/apiTypes";
 import type { Tone } from "@/lib/tone";
+import { LOCALE, DATE_OPTIONS } from "@/lib/format";
+import { CONTROL_STATUS_TONE, CONTROL_STATUS_LABEL } from "@/lib/tone";
 
 /** Written policy, its owner, and when it is next due for review. */
 
@@ -34,7 +36,7 @@ const STATUS_LABEL: Record<PolicyStatus, string> = {
 const STATUSES: PolicyStatus[] = ["ACTIVE", "DRAFT", "UNDER_REVIEW", "ARCHIVED"];
 
 const fmtDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
+  iso ? new Date(iso).toLocaleDateString(LOCALE, DATE_OPTIONS) : "—";
 
 /** An ISO instant as the yyyy-mm-dd a date input wants. */
 const toDateInput = (iso: string | null) => (iso ? iso.slice(0, 10) : "");
@@ -257,7 +259,7 @@ function PolicyDrawer({ id, onClose, isAdmin }: {
               : p.controls.map(c => (
                   <div key={c.id} className="flex items-center justify-between gap-3 py-1.5">
                     <span className="truncate text-body-sm text-primary">{c.name}</span>
-                    <Badge tone="muted">{c.status}</Badge>
+                    <Badge variant="soft" tone={CONTROL_STATUS_TONE[c.status]}>{CONTROL_STATUS_LABEL[c.status]}</Badge>
                   </div>
                 ))}
           </FieldGroup>
@@ -392,7 +394,7 @@ function CreatePolicyModal({ onClose }: { onClose: () => void }) {
       </div>
 
       {error && (
-        <div role="alert" className="mt-3 rounded-md border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
+        <div role="alert" className="mt-3 rounded-lg border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
           {error}
         </div>
       )}

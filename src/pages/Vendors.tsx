@@ -1,3 +1,4 @@
+import { BAND_FILL } from "@/lib/tone";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, Badge, Btn, Input, Select, Modal, SlideOver, ChartSkeleton, ErrorState, HeadlineSkeleton } from "@/components/ui-bits";
@@ -16,6 +17,8 @@ import { useCanWrite } from "@/hooks/use-auth";
 import { describeApiError, toApiError } from "@/lib/apiErrors";
 import { notify } from "@/lib/notify";
 import type { ApiVendor, BaaStatus } from "@/lib/apiTypes";
+import { LOCALE, DATE_OPTIONS } from "@/lib/format";
+import { remediationLink } from "@/lib/remediationLink";
 
 /**
  * Vendor risk, backed by /api/vendors.
@@ -29,7 +32,7 @@ import type { ApiVendor, BaaStatus } from "@/lib/apiTypes";
 const BAA_STATUSES: BaaStatus[] = ["SIGNED", "PENDING", "EXPIRED", "MISSING"];
 
 const fmtDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "Never";
+  iso ? new Date(iso).toLocaleDateString(LOCALE, DATE_OPTIONS) : "Never";
 
 const assessedLabel = (v: ApiVendor) =>
   v.lastAssessedAt === null ? "Never assessed" : daysAgoLabel(v.daysSinceAssessment);
@@ -108,7 +111,7 @@ export default function Vendors() {
       header: "PHI records",
       align: "right",
       sortValue: v => v.phiVolume,
-      cell: v => v.phiVolume.toLocaleString(),
+      cell: v => v.phiVolume.toLocaleString(LOCALE),
     },
     {
       id: "assessed",
@@ -164,11 +167,11 @@ export default function Vendors() {
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Vendors" value={stats?.total} icon="facility" />
+        <MetricCard label="Vendors" value={stats?.total} icon="facility" domainIcon="vendor" />
         <MetricCard
           label="Without a valid BAA"
           value={stats?.noBaa}
-          icon="threats"
+          icon="threats" domainIcon="control"
           tone="danger"
           emphasis={Boolean(stats?.noBaa)}
           sub="missing, expired or pending"
@@ -176,14 +179,14 @@ export default function Vendors() {
         <MetricCard
           label="Assessment overdue"
           value={stats?.overdue}
-          icon="clock"
+          icon="clock" domainIcon="audit"
           tone="warning"
           emphasis={Boolean(stats?.overdue)}
         />
         <MetricCard
           label="PHI records exposed"
-          value={stats ? stats.phiVolume.toLocaleString() : undefined}
-          icon="record"
+          value={stats ? stats.phiVolume.toLocaleString(LOCALE) : undefined}
+          icon="record" domainIcon="phi"
           sub="across all vendors"
         />
       </div>
@@ -193,11 +196,11 @@ export default function Vendors() {
       {!all.data && <HeadlineSkeleton label="Loading summary" />}
 
       {worstGap && (
-        <div className="flex flex-wrap items-center gap-3 rounded-md border border-feedback-error-stroke bg-feedback-error-background p-3">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-feedback-error-stroke bg-feedback-error-background p-3">
           <AppIcon name="threats" size="md" className="text-feedback-error" />
           <span className="text-body-md text-primary">
             <span className="font-semibold">BAA gap:</span> {worstGap.name} holds{" "}
-            {worstGap.phiVolume.toLocaleString()} PHI records across {worstGap.assetCount} system
+            {worstGap.phiVolume.toLocaleString(LOCALE)} PHI records across {worstGap.assetCount} system
             {worstGap.assetCount === 1 ? "" : "s"} with a{" "}
             <strong>{worstGap.baaStatus.toLowerCase()}</strong> business associate agreement
             {worstGap.lastAssessedAt === null && " — never assessed"}.
@@ -249,11 +252,11 @@ export default function Vendors() {
       </Card>
 
       <Card className="p-4">
-        <div className="mb-2 text-label-sm uppercase tracking-wide text-quaternary">
+        <div className="mb-2 text-caption uppercase tracking-[0.08em] text-quaternary">
           Risk by band
         </div>
         <MiniBar
-          segments={BAND_ORDER.map(b => ({ value: bandCounts[b] ?? 0, tone: BAND_TONE[b], label: b }))}
+          segments={BAND_ORDER.map(b => ({ value: bandCounts[b] ?? 0, tone: BAND_TONE[b], label: b, fill: BAND_FILL[b] }))}
         />
         <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-2">
           {BAND_ORDER.map(b => (
@@ -316,7 +319,37 @@ function VendorDrawer({ id, onClose, canWrite }: { id: number | null; onClose: (
       title={v?.name ?? "Vendor"}
       footer={
         v && canWrite ? (
-          <div className="flex w-full items-center gap-2">
+          <div className="flex w-full flex-col gap-2">
+            {/* A BAA gap or a lapsed assessment is work for someone — track it. */}
+            {(v.baaStatus !== "SIGNED" || v.assessmentOverdue) && (
+              <Btn
+                variant="outline"
+                className="w-full"
+                onClick={() =>
+                  navigate(
+                    remediationLink({
+                      source: "VENDOR",
+                      title: v.baaStatus !== "SIGNED"
+                        ? `Obtain a signed BAA from ${v.name}`
+                        : `Reassess ${v.name}`,
+                      description: v.baaStatus !== "SIGNED"
+                        ? `BAA is ${BAA_LABEL[v.baaStatus].toLowerCase()} while ${v.name} processes PHI.`
+                        : `The vendor's risk assessment is overdue.`,
+                      recommendation: v.baaStatus !== "SIGNED"
+                        ? "Obtain and file a signed BAA; pause new PHI sharing with this vendor until it is in place."
+                        : "Complete a fresh vendor risk assessment and record the result.",
+                      severity: v.baaStatus === "MISSING" || v.baaStatus === "EXPIRED" ? "HIGH" : "MEDIUM",
+                      vendorId: v.id,
+                      context: `the vendor ${v.name}`,
+                    }),
+                  )
+                }
+              >
+                <AppIcon name="remediation" size="sm" />
+                Raise remediation
+              </Btn>
+            )}
+            <div className="flex w-full items-center gap-2">
             <Btn variant="outline" onClick={() => setEditing(true)} className="flex-1">
               <AppIcon name="edit" size="sm" />
               Edit
@@ -325,6 +358,7 @@ function VendorDrawer({ id, onClose, canWrite }: { id: number | null; onClose: (
               <AppIcon name="refresh" size="sm" spin={recompute.isPending} />
               {recompute.isPending ? "Rescoring…" : "Recompute risk"}
             </Btn>
+            </div>
           </div>
         ) : undefined
       }
@@ -350,14 +384,14 @@ function VendorDrawer({ id, onClose, canWrite }: { id: number | null; onClose: (
                 <RiskBadge band={v.risk?.band ?? null} />
               </div>
               <p className="mt-1.5 text-body-sm text-tertiary">
-                {v.phiVolume.toLocaleString()} PHI records · {v.assets.length} system
+                {v.phiVolume.toLocaleString(LOCALE)} PHI records · {v.assets.length} system
                 {v.assets.length === 1 ? "" : "s"}
               </p>
             </div>
           </div>
 
           {!v.baaCompliant && (
-            <div className="rounded-md border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
+            <div className="rounded-lg border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
               Under HIPAA, a vendor processing PHI without a signed BAA is a compliance breach in
               itself — independent of whether any data has been exposed.
             </div>
@@ -377,7 +411,7 @@ function VendorDrawer({ id, onClose, canWrite }: { id: number | null; onClose: (
             <TabPanel>
               <FieldGroup>
                 <Field label="BAA status" value={<Badge tone={BAA_TONE[v.baaStatus]}>{BAA_LABEL[v.baaStatus]}</Badge>} />
-                <Field label="PHI records" value={v.phiVolume.toLocaleString()} />
+                <Field label="PHI records" value={v.phiVolume.toLocaleString(LOCALE)} />
                 <Field label="Systems reachable" value={String(v.assets.length)} />
                 <Field label="Last assessed" value={fmtDate(v.lastAssessedAt)} />
                 <Field
@@ -427,7 +461,7 @@ function VendorDrawer({ id, onClose, canWrite }: { id: number | null; onClose: (
                       key={a.id}
                       type="button"
                       onClick={() => navigate(`/assets?open=${a.id}`)}
-                      className="flex w-full items-center justify-between gap-3 rounded-md border border-default p-2.5 text-left transition-colors hover:border-active"
+                      className="flex w-full items-center justify-between gap-3 rounded-lg border border-muted p-2.5 text-left transition-colors hover:border-default hover:bg-raised"
                     >
                       <span className="flex min-w-0 items-center gap-2.5">
                         <EntityAvatar icon="asset" tone={a.encrypted ? "success" : "danger"} size="sm" />
@@ -466,7 +500,7 @@ function VendorForm({
   return (
     <div className="space-y-3">
       <label className="block">
-        <span className="mb-1 block text-label-md text-primary">Name</span>
+        <span className="mb-1 block text-caption uppercase tracking-[0.08em] text-quaternary">Name</span>
         <Input
           value={state.name}
           onChange={e => setState({ ...state, name: e.target.value })}
@@ -476,7 +510,7 @@ function VendorForm({
         />
       </label>
       <label className="block">
-        <span className="mb-1 block text-label-md text-primary">BAA status</span>
+        <span className="mb-1 block text-caption uppercase tracking-[0.08em] text-quaternary">BAA status</span>
         <Select
           value={state.baaStatus}
           onChange={e => setState({ ...state, baaStatus: e.target.value as BaaStatus })}
@@ -487,7 +521,7 @@ function VendorForm({
         </Select>
       </label>
       <label className="block">
-        <span className="mb-1 block text-label-md text-primary">PHI records</span>
+        <span className="mb-1 block text-caption uppercase tracking-[0.08em] text-quaternary">PHI records</span>
         <Input
           type="number"
           min={0}
@@ -498,7 +532,7 @@ function VendorForm({
         />
       </label>
       <label className="block">
-        <span className="mb-1 block text-label-md text-primary">Last assessed</span>
+        <span className="mb-1 block text-caption uppercase tracking-[0.08em] text-quaternary">Last assessed</span>
         <Input
           type="date"
           value={state.lastAssessedAt}
@@ -539,7 +573,7 @@ function CreateVendorModal({ onClose }: { onClose: () => void }) {
     <Modal open onClose={onClose} title="New vendor" size="md">
       <VendorForm state={state} setState={setState} disabled={create.isPending} />
       {error && (
-        <div role="alert" className="mt-3 rounded-md border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
+        <div role="alert" className="mt-3 rounded-lg border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
           {error}
         </div>
       )}
@@ -590,7 +624,7 @@ function EditVendorModal({
     <Modal open onClose={onClose} title={`Edit ${vendor.name}`} size="md">
       <VendorForm state={state} setState={setState} disabled={update.isPending} />
       {error && (
-        <div role="alert" className="mt-3 rounded-md border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
+        <div role="alert" className="mt-3 rounded-lg border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
           {error}
         </div>
       )}

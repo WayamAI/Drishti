@@ -16,6 +16,8 @@ import type {
   ApiControl, ControlStatus, ControlCategory, ControlEffectiveness,
 } from "@/lib/apiTypes";
 import type { Tone } from "@/lib/tone";
+import { LOCALE, DATE_OPTIONS } from "@/lib/format";
+import { CONTROL_STATUS_TONE, CONTROL_STATUS_LABEL } from "@/lib/tone";
 
 /**
  * Safeguards in place across the estate.
@@ -27,19 +29,8 @@ import type { Tone } from "@/lib/tone";
  * that helps an audit and one that misleads it.
  */
 
-const STATUS_TONE: Record<ControlStatus, Tone> = {
-  IMPLEMENTED: "success",
-  PARTIAL: "warning",
-  PLANNED: "info",
-  NOT_IMPLEMENTED: "danger",
-};
-
-const STATUS_LABEL: Record<ControlStatus, string> = {
-  IMPLEMENTED: "Implemented",
-  PARTIAL: "Partial",
-  PLANNED: "Planned",
-  NOT_IMPLEMENTED: "Not implemented",
-};
+const STATUS_TONE = CONTROL_STATUS_TONE;
+const STATUS_LABEL = CONTROL_STATUS_LABEL;
 
 const STATUSES: ControlStatus[] = ["IMPLEMENTED", "PARTIAL", "PLANNED", "NOT_IMPLEMENTED"];
 
@@ -69,7 +60,7 @@ const EFFECTIVENESS_TONE: Record<ControlEffectiveness, Tone> = {
 };
 
 const fmtDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "Never";
+  iso ? new Date(iso).toLocaleDateString(LOCALE, DATE_OPTIONS) : "Never";
 
 /** An ISO instant as the yyyy-mm-dd a date input wants. */
 const toDateInput = (iso: string | null) => (iso ? iso.slice(0, 10) : "");
@@ -333,7 +324,7 @@ function ControlDrawer({ id, onClose, canAssess, isAdmin }: {
                   : "—"
               }
             />
-            <Field label="PHI covered" value={c.phiCovered.toLocaleString()} />
+            <Field label="PHI covered" value={c.phiCovered.toLocaleString(LOCALE)} />
             <Field label="Last reviewed" value={fmtDate(c.lastReviewedAt)} />
           </FieldGroup>
 
@@ -349,7 +340,7 @@ function ControlDrawer({ id, onClose, canAssess, isAdmin }: {
                   <div key={a.id} className="flex items-center justify-between gap-3 py-1.5">
                     <span className="truncate text-body-sm text-primary">{a.name}</span>
                     <span className="shrink-0 text-caption text-tertiary">
-                      {a.phiVolume.toLocaleString()} records
+                      {a.phiVolume.toLocaleString(LOCALE)} records
                     </span>
                   </div>
                 ))}
@@ -530,7 +521,7 @@ function CreateControlModal({ onClose }: { onClose: () => void }) {
       </div>
 
       {error && (
-        <div role="alert" className="mt-3 rounded-md border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
+        <div role="alert" className="mt-3 rounded-lg border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
           {error}
         </div>
       )}

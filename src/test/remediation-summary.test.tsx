@@ -32,7 +32,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.includes("/api/auth/login")) {
-      return json({ data: { token: "t", expiresIn: 3600, user: { id: 1, email: "a@meridian.org", role: "ADMIN", organizationId: 1 } } });
+      return json({ data: { token: "t", expiresIn: 3600, user: { id: 1, email: "a@drishti.ai", role: "ADMIN", organizationId: 1 } } });
     }
     if (url.includes("/api/auth/refresh")) return json({ error: { message: "no" } }, 401);
     if (url.includes("/api/remediations/summary")) return json({ data: SUMMARY });
@@ -47,7 +47,7 @@ afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 function SignIn({ children }: { children: ReactNode }) {
   const { login, isAuthenticated, isInitializing } = useAuth();
-  useEffect(() => { if (!isInitializing) void login("a@meridian.org", "pw"); }, [login, isInitializing]);
+  useEffect(() => { if (!isInitializing) void login("a@drishti.ai", "pw"); }, [login, isInitializing]);
   return <>{isAuthenticated ? children : <div>signing in</div>}</>;
 }
 
@@ -127,7 +127,7 @@ describe("Remediation subject", () => {
     id: 1, title: "Billing DB stores PHI unencrypted",
     description: "d", recommendation: "r",
     severity: "CRITICAL", status: "OPEN", source: "MANUAL",
-    owner: { id: 1, email: "admin@meridian.org" },
+    owner: { id: 1, email: "admin@drishti.ai" },
     subject, dueAt: null, resolvedAt: null,
     createdAt: "2026-09-01T00:00:00.000Z", open: true, overdue: false,
   });
@@ -138,7 +138,7 @@ describe("Remediation subject", () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes("/api/auth/login")) {
-        return json({ data: { token: "t", expiresIn: 3600, user: { id: 1, email: "a@meridian.org", role: "ADMIN", organizationId: 1 } } });
+        return json({ data: { token: "t", expiresIn: 3600, user: { id: 1, email: "a@drishti.ai", role: "ADMIN", organizationId: 1 } } });
       }
       if (url.includes("/api/auth/refresh")) return json({ error: { message: "no" } }, 401);
       if (url.includes("/api/remediations/summary")) return json({ data: SUMMARY });

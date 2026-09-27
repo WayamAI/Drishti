@@ -8,6 +8,7 @@ import { useAudit } from "@/hooks/useGovernance";
 import { useListControls } from "@/hooks/useListControls";
 import type { ApiAuditEntry } from "@/lib/apiTypes";
 import type { Tone } from "@/lib/tone";
+import { LOCALE, DATETIME_OPTIONS } from "@/lib/format";
 
 /**
  * Audit trail — who did what, to what, when, and with what result.
@@ -65,7 +66,7 @@ const iconFor = (action: string): DomainIconName =>
 const humanise = (action: string) =>
   action.charAt(0) + action.slice(1).toLowerCase().replace(/_/g, " ");
 
-const fmtWhen = (iso: string) => new Date(iso).toLocaleString();
+const fmtWhen = (iso: string) => new Date(iso).toLocaleString(LOCALE, DATETIME_OPTIONS);
 
 export default function AuditPage() {
   const [group, setGroup] = useState("all");
@@ -146,7 +147,7 @@ export default function AuditPage() {
         meta={
           entries.meta
             ? <span className="text-caption text-tertiary">
-                {entries.meta.total.toLocaleString()} recorded events
+                {entries.meta.total.toLocaleString(LOCALE)} recorded events
               </span>
             : undefined
         }
@@ -226,7 +227,7 @@ export default function AuditPage() {
                   Credentials and patient identifiers are stripped server-side
                   before storage.
                 */}
-                <pre className="overflow-x-auto rounded-md border border-default bg-raised-2 p-2.5 text-caption text-secondary">
+                <pre className="overflow-x-auto rounded-lg border border-muted bg-raised p-2.5 text-caption text-secondary">
                   {JSON.stringify(selected.metadata, null, 2)}
                 </pre>
               </FieldGroup>

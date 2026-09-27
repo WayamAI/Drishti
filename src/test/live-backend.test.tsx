@@ -27,7 +27,7 @@ import Vendors from "@/pages/Vendors";
  */
 
 const API = process.env.VITE_API_BASE_URL ?? "http://localhost:4000";
-const EMAIL = process.env.DEMO_USER_EMAIL ?? "admin@meridian.org";
+const EMAIL = process.env.DEMO_USER_EMAIL ?? "admin@drishti.ai";
 const PASSWORD = process.env.DEMO_USER_PASSWORD ?? "";
 const BACKEND_DIR = process.env.BACKEND_DIR ?? "";
 

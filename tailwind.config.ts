@@ -8,7 +8,7 @@ import tailwindcssAnimate from "tailwindcss-animate";
  * Components consume ONLY the semantic utilities below (bg-page, text-secondary,
  * border-default, ...). Raw reference tokens (--ref-*) are never referenced here.
  *
- * The `colors` block additionally retains the shadcn/ui keys so the ~49 template
+ * The `colors` block additionally retains the shadcn/ui keys so the remaining template
  * components in src/components/ui/ keep working; their values are re-derived from
  * the same palette in src/index.css.
  */
@@ -67,33 +67,33 @@ export default {
       },
 
       fontSize: {
-        // --- Michroma display scale -------------------------------------------
-        "display-6xl": ["3.75rem", { lineHeight: "1.05", letterSpacing: "-0.03em", fontWeight: "400" }],
-        "display-5xl": ["3rem", { lineHeight: "1.08", letterSpacing: "-0.025em", fontWeight: "400" }],
-        "display-4xl": ["2.25rem", { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "400" }],
-        "display-3xl": ["1.875rem", { lineHeight: "1.15", letterSpacing: "-0.015em", fontWeight: "400" }],
-        "display-2xl": ["1.5rem", { lineHeight: "1.2", letterSpacing: "-0.01em", fontWeight: "400" }],
-        "display-xl": ["1.25rem", { lineHeight: "1.25", letterSpacing: "-0.005em", fontWeight: "400" }],
-        "display-lg": ["1.125rem", { lineHeight: "1.3", letterSpacing: "0", fontWeight: "400" }],
-        "display-base": ["1rem", { lineHeight: "1.35", letterSpacing: "0", fontWeight: "400" }],
+        // --- Michroma display scale (Chronos values) ---------------------------
+        "display-6xl": ["4rem", { lineHeight: "1.05", letterSpacing: "-0.03em", fontWeight: "400" }],
+        "display-5xl": ["3.25rem", { lineHeight: "1.08", letterSpacing: "-0.03em", fontWeight: "400" }],
+        "display-4xl": ["2.625rem", { lineHeight: "1.1", letterSpacing: "-0.03em", fontWeight: "400" }],
+        "display-3xl": ["2.125rem", { lineHeight: "1.12", letterSpacing: "-0.02em", fontWeight: "400" }],
+        "display-2xl": ["1.75rem", { lineHeight: "1.15", letterSpacing: "-0.02em", fontWeight: "400" }],
+        "display-xl": ["1.375rem", { lineHeight: "1.2", letterSpacing: "-0.01em", fontWeight: "400" }],
+        "display-lg": ["1.125rem", { lineHeight: "1.25", letterSpacing: "-0.01em", fontWeight: "400" }],
+        "display-base": ["0.875rem", { lineHeight: "1.4", letterSpacing: "-0.01em", fontWeight: "400" }],
 
         // --- Semantic type tokens ---------------------------------------------
         // Michroma-bearing (pair with `font-display`)
-        "display-page": ["1.5rem", { lineHeight: "1.2", letterSpacing: "-0.01em", fontWeight: "400" }],
-        "display-metric": ["2.25rem", { lineHeight: "1.05", letterSpacing: "-0.02em", fontWeight: "400" }],
-        "display-metric-sm": ["1.5rem", { lineHeight: "1.1", letterSpacing: "-0.01em", fontWeight: "400" }],
+        "display-page": ["1.375rem", { lineHeight: "1.2", letterSpacing: "-0.01em", fontWeight: "400" }],
+        "display-metric": ["1.75rem", { lineHeight: "1.15", letterSpacing: "-0.02em", fontWeight: "400" }],
+        "display-metric-sm": ["1.375rem", { lineHeight: "1.2", letterSpacing: "-0.01em", fontWeight: "400" }],
         "display-section": ["0.875rem", { lineHeight: "1.3", letterSpacing: "0.02em", fontWeight: "400" }],
 
-        // Geist-bearing (default family)
-        "heading-lg": ["1.25rem", { lineHeight: "1.3", letterSpacing: "-0.01em", fontWeight: "600" }],
-        "heading-md": ["1rem", { lineHeight: "1.35", letterSpacing: "-0.005em", fontWeight: "600" }],
-        "heading-sm": ["0.875rem", { lineHeight: "1.4", letterSpacing: "0", fontWeight: "600" }],
-        "body-lg": ["1rem", { lineHeight: "1.5", fontWeight: "400" }],
-        "body-md": ["0.875rem", { lineHeight: "1.45", fontWeight: "400" }],
-        "body-sm": ["0.8125rem", { lineHeight: "1.45", fontWeight: "400" }],
-        "label-md": ["0.8125rem", { lineHeight: "1.3", fontWeight: "500" }],
-        "label-sm": ["0.75rem", { lineHeight: "1.3", fontWeight: "500" }],
-        caption: ["0.6875rem", { lineHeight: "1.35", letterSpacing: "0.01em", fontWeight: "400" }],
+        // Geist-bearing (default family) — Chronos functional scale
+        "heading-lg": ["1.5rem", { lineHeight: "30px", letterSpacing: "-0.01em", fontWeight: "600" }],
+        "heading-md": ["1.125rem", { lineHeight: "24px", letterSpacing: "-0.01em", fontWeight: "600" }],
+        "heading-sm": ["1rem", { lineHeight: "22px", letterSpacing: "-0.01em", fontWeight: "600" }],
+        "body-lg": ["1rem", { lineHeight: "24px", letterSpacing: "-0.01em", fontWeight: "400" }],
+        "body-md": ["0.875rem", { lineHeight: "20px", letterSpacing: "-0.01em", fontWeight: "400" }],
+        "body-sm": ["0.75rem", { lineHeight: "16px", letterSpacing: "-0.01em", fontWeight: "400" }],
+        "label-md": ["0.875rem", { lineHeight: "20px", fontWeight: "500" }],
+        "label-sm": ["0.75rem", { lineHeight: "16px", fontWeight: "500" }],
+        caption: ["0.75rem", { lineHeight: "16px", fontWeight: "500" }],
       },
 
       colors: {
@@ -149,6 +149,14 @@ export default {
           info: sem("solid-info-content"),
           neutral: sem("solid-neutral-content"),
         },
+        band: {
+          extreme: sem("band-extreme"),
+          critical: sem("band-critical"),
+          high: sem("band-high"),
+          moderate: sem("band-moderate"),
+          low: sem("band-low"),
+          content: sem("band-content"),
+        },
         severity: {
           critical: sem("severity-critical"),
           high: sem("severity-high"),
@@ -190,12 +198,14 @@ export default {
           "on-color": sem("icon-on-color"),
         },
 
+        "brand-mark": sem("brand-mark"),
         "action-primary": sem("action-surface-primary-content"),
         "action-secondary": sem("action-surface-secondary-content"),
         "action-tertiary": sem("action-surface-tertiary-content"),
       },
 
       backgroundColor: {
+        "brand-mark": sem("brand-mark-surface"),
         page: sem("surface-page-background"),
         container: sem("surface-container"),
         raised: sem("surface-raised"),
@@ -234,7 +244,7 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-        card: "1rem",
+        card: "0.5rem",
       },
 
       transitionDuration: {
@@ -242,9 +252,10 @@ export default {
       },
 
       boxShadow: {
-        // Restrained elevation only — no large diffuse shadows.
-        raised: "0 1px 2px 0 rgb(0 0 0 / 0.40)",
-        panel: "0 8px 24px -8px rgb(0 0 0 / 0.55)",
+        // Chronos: surfaces are separated by hairlines, not shadows. Only
+        // floating layers (menus, drawers) get elevation.
+        raised: "none",
+        panel: "0 10px 30px -12px rgb(0 0 0 / 0.25)",
       },
     },
   },

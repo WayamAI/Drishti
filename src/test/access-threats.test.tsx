@@ -39,7 +39,7 @@ const GRANTS: ApiAccessGrant[] = [
     grantedAt: "2024-03-16T00:00:00Z", lastUsedAt: null, lastReviewedAt: null, revokedAt: null,
     daysSinceUse: null, daysSinceGrant: 911,
     flags: ["NEVER_USED", "EXCESSIVE_LEVEL"], riskFlagCount: 2 },
-  { id: 1, identityId: 1, identityName: "Dr. Aisha Patel", identityEmail: "a.patel@meridian.org",
+  { id: 1, identityId: 1, identityName: "Dr. Aisha Patel", identityEmail: "a.patel@drishti.ai",
     kind: "USER", department: "ICU", active: true, mfaEnabled: true, assetId: 3,
     assetName: "Epic EHR Core", assetType: "EHR", level: "READ",
     grantedAt: "2026-06-01T00:00:00Z", lastUsedAt: "2026-09-12T00:00:00Z",

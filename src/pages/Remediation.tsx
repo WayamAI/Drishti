@@ -21,6 +21,8 @@ import type {
   RemediationSource, RemediationSubject,
 } from "@/lib/apiTypes";
 import type { Tone } from "@/lib/tone";
+import { LOCALE, DATE_OPTIONS } from "@/lib/format";
+import { readRemediationPrefill, PREFILL_PARAMS, type RemediationPrefill } from "@/lib/remediationLink";
 
 /**
  * Remediation — findings, owners and what was done about them.
@@ -100,7 +102,7 @@ const NEXT_STATUSES: Record<RemediationStatus, RemediationStatus[]> = {
 };
 
 const fmtDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
+  iso ? new Date(iso).toLocaleDateString(LOCALE, DATE_OPTIONS) : "—";
 
 export default function Remediation() {
   const canWrite = useCanWrite();
@@ -109,6 +111,16 @@ export default function Remediation() {
   const [params, setParams] = useSearchParams();
   const openId = params.get("open") ? Number(params.get("open")) : null;
   const [createOpen, setCreateOpen] = useState(false);
+  // A hand-off from a threat, grant or vendor opens the form pre-filled.
+  const prefill = canWrite ? readRemediationPrefill(params) : null;
+  const closeCreate = () => {
+    setCreateOpen(false);
+    if (prefill) {
+      const next = new URLSearchParams(params);
+      for (const k of PREFILL_PARAMS) next.delete(k);
+      setParams(next, { replace: true });
+    }
+  };
 
   const controls = useListControls<{ status?: RemediationStatus; severity?: RemediationSeverity }>({
     status: undefined, severity: undefined,
@@ -210,7 +222,7 @@ export default function Remediation() {
         <MetricCard
           label="Awaiting work"
           value={s ? s.byStatus.OPEN + s.byStatus.REOPENED : undefined}
-          icon="tasks"
+          icon="tasks" domainIcon="remediation"
           tone="danger"
           emphasis={Boolean(s && s.byStatus.OPEN + s.byStatus.REOPENED)}
           sub={s && s.byStatus.REOPENED ? `${s.byStatus.REOPENED} reopened` : undefined}
@@ -219,7 +231,7 @@ export default function Remediation() {
         <MetricCard
           label="Overdue"
           value={s?.overdue}
-          icon="threats"
+          icon="threats" domainIcon="audit"
           tone="danger"
           emphasis={Boolean(s?.overdue)}
           sub={s ? "of the open findings" : undefined}
@@ -287,7 +299,7 @@ export default function Remediation() {
       </Card>
 
       <RemediationDrawer id={openId} onClose={() => openItem(null)} canWrite={canWrite} />
-      {createOpen && <CreateRemediationModal onClose={() => setCreateOpen(false)} />}
+      {(createOpen || prefill) && <CreateRemediationModal prefill={prefill} onClose={closeCreate} />}
     </div>
   );
 }
@@ -411,7 +423,7 @@ function RemediationDrawer({
             does not change the estate. Saying so here stops the drawer
             implying the underlying problem went away.
           */}
-          <p className="rounded-md border border-default bg-raised-2 px-3 py-2 text-caption text-tertiary">
+          <p className="rounded-lg bg-raised px-3 py-2 text-caption text-tertiary">
             Closing a finding records who decided what, and when. It does not
             alter the asset, control or threat it points at — change those
             directly if the estate itself needs to move.
@@ -433,12 +445,16 @@ function RemediationDrawer({
   );
 }
 
-function CreateRemediationModal({ onClose }: { onClose: () => void }) {
+function CreateRemediationModal({ onClose, prefill }: { onClose: () => void; prefill?: RemediationPrefill | null }) {
   const create = useCreateRemediation();
   const members = useOrgMembers();
   const [form, setForm] = useState({
-    title: "", description: "", recommendation: "",
-    severity: "MEDIUM" as RemediationSeverity, ownerId: "", dueAt: "",
+    title: prefill?.title ?? "",
+    description: prefill?.description ?? "",
+    recommendation: prefill?.recommendation ?? "",
+    severity: (prefill?.severity ?? "MEDIUM") as RemediationSeverity,
+    ownerId: "",
+    dueAt: "",
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -454,7 +470,10 @@ function CreateRemediationModal({ onClose }: { onClose: () => void }) {
         description: form.description.trim(),
         recommendation: form.recommendation.trim(),
         severity: form.severity,
-        source: "MANUAL",
+        source: prefill?.source ?? "MANUAL",
+        ...(prefill?.assetId ? { assetId: prefill.assetId } : {}),
+        ...(prefill?.vendorId ? { vendorId: prefill.vendorId } : {}),
+        ...(prefill?.threatId ? { threatId: prefill.threatId } : {}),
         ...(form.ownerId ? { ownerId: Number(form.ownerId) } : {}),
         ...(form.dueAt ? { dueAt: new Date(form.dueAt).toISOString() } : {}),
       });
@@ -468,8 +487,14 @@ function CreateRemediationModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal open onClose={onClose} title="New finding" size="md">
       <div className="space-y-3">
+        {prefill?.context && (
+          <div className="flex items-start gap-2 rounded-lg bg-raised px-3 py-2 text-body-sm text-secondary">
+            <AppIcon name="network" size="sm" className="mt-0.5 shrink-0 text-icon-tertiary" />
+            <span>Linked to <span className="text-primary">{prefill.context}</span>. The finding will point back at it.</span>
+          </div>
+        )}
         <label className="block">
-          <span className="mb-1 block text-label-md text-primary">Title</span>
+          <span className="mb-1 block text-caption uppercase tracking-[0.08em] text-quaternary">Title</span>
           <Input
             value={form.title}
             onChange={e => setForm({ ...form, title: e.target.value })}
@@ -479,7 +504,7 @@ function CreateRemediationModal({ onClose }: { onClose: () => void }) {
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-label-md text-primary">What is wrong</span>
+          <span className="mb-1 block text-caption uppercase tracking-[0.08em] text-quaternary">What is wrong</span>
           <Textarea
             rows={3}
             value={form.description}
@@ -489,7 +514,7 @@ function CreateRemediationModal({ onClose }: { onClose: () => void }) {
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-label-md text-primary">Recommended action</span>
+          <span className="mb-1 block text-caption uppercase tracking-[0.08em] text-quaternary">Recommended action</span>
           <Textarea
             rows={2}
             value={form.recommendation}
@@ -500,7 +525,7 @@ function CreateRemediationModal({ onClose }: { onClose: () => void }) {
         </label>
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
-            <span className="mb-1 block text-label-md text-primary">Severity</span>
+            <span className="mb-1 block text-caption uppercase tracking-[0.08em] text-quaternary">Severity</span>
             <Select
               value={form.severity}
               onChange={e => setForm({ ...form, severity: e.target.value as RemediationSeverity })}
@@ -511,7 +536,7 @@ function CreateRemediationModal({ onClose }: { onClose: () => void }) {
             </Select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-label-md text-primary">Due</span>
+            <span className="mb-1 block text-caption uppercase tracking-[0.08em] text-quaternary">Due</span>
             <Input
               type="date"
               value={form.dueAt}
@@ -522,7 +547,7 @@ function CreateRemediationModal({ onClose }: { onClose: () => void }) {
           </label>
         </div>
         <label className="block">
-          <span className="mb-1 block text-label-md text-primary">Owner</span>
+          <span className="mb-1 block text-caption uppercase tracking-[0.08em] text-quaternary">Owner</span>
           <Select
             value={form.ownerId}
             onChange={e => setForm({ ...form, ownerId: e.target.value })}
@@ -538,7 +563,7 @@ function CreateRemediationModal({ onClose }: { onClose: () => void }) {
       </div>
 
       {error && (
-        <div role="alert" className="mt-3 rounded-md border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
+        <div role="alert" className="mt-3 rounded-lg border border-feedback-error-stroke bg-feedback-error-background px-3 py-2 text-body-sm text-feedback-error">
           {error}
         </div>
       )}
