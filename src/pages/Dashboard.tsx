@@ -6,6 +6,8 @@ import { AppIcon } from "@/components/AppIcon";
 import { DataState } from "@/components/DataState";
 import { listAsQuery } from "@/components/DataTable";
 import { RiskMatrix } from "@/components/RiskMatrix";
+import { RecentActivity } from "@/components/RecentActivity";
+import { useAuth } from "@/hooks/use-auth";
 import { DomainIcon, type DomainIconName } from "@/components/DomainIcon";
 import {
   PageHeader, MetricCard, RiskBadge, MiniBar, EntityAvatar,
@@ -48,6 +50,8 @@ type Finding = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  // The audit trail is ADMIN-only server-side, so the activity feed is too.
+  const isAdmin = useAuth().user?.role === "ADMIN";
 
   /*
    * Organisation-level figures.
@@ -355,33 +359,30 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* RISK OVERVIEW */}
-      <Card className="p-4">
-        <SectionHeader
-          title="Risk Matrix"
-          subtitle="Every scored asset by likelihood and impact. Colour is the band the API derived."
-          action={
-            <Btn variant="outline" onClick={() => navigate("/risks")}>
-              Open register
-              <AppIcon name="chevronRight" size="sm" />
-            </Btn>
-          }
-        />
-        <DataState
-          query={listAsQuery(matrixRisks)}
-          height={360}
-          emptyTitle="No scored assets"
-          emptyMessage="Import assets and run a risk assessment to populate the matrix."
-        >
-          {data => <RiskMatrix risks={data} onSelect={id => navigate(`/risks?open=${String(id).replace(/^R-0*/, "")}`)} />}
-        </DataState>
-      </Card>
-
-      {/*
-        There is deliberately no "Recent Activity" feed. The previous one
-        animated fixture rows with fabricated timestamps. A real one needs
-        GET /api/audit, specified in FRONTEND_API_CONTRACT.md.
-      */}
+      {/* RISK OVERVIEW — beside the latest changes, for the people who can read them. */}
+      <div className={isAdmin ? "grid grid-cols-1 gap-4 xl:grid-cols-3" : undefined}>
+        <Card className={isAdmin ? "p-4 xl:col-span-2" : "p-4"}>
+          <SectionHeader
+            title="Risk Matrix"
+            subtitle="Every scored asset by likelihood and impact. Colour is the band the API derived."
+            action={
+              <Btn variant="outline" onClick={() => navigate("/risks")}>
+                Open register
+                <AppIcon name="chevronRight" size="sm" />
+              </Btn>
+            }
+          />
+          <DataState
+            query={listAsQuery(matrixRisks)}
+            height={360}
+            emptyTitle="No scored assets"
+            emptyMessage="Import assets and run a risk assessment to populate the matrix."
+          >
+            {data => <RiskMatrix risks={data} onSelect={id => navigate(`/risks?open=${String(id).replace(/^R-0*/, "")}`)} />}
+          </DataState>
+        </Card>
+        {isAdmin && <RecentActivity enabled={isAdmin} />}
+      </div>
     </div>
   );
 }

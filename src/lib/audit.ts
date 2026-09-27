@@ -38,6 +38,19 @@ const AUTH = AUDIT_ACTION_GROUPS.find(g => g.value === "auth")!;
 /** Sign-ins and token refreshes: real events, but noise in an activity feed. */
 export const isAuthAction = (action: string) => AUTH.match(action);
 
+/**
+ * What an activity feed leaves out: authentication, and IMPORT_STARTED —
+ * every import also writes IMPORT_COMPLETED or IMPORT_FAILED carrying the
+ * same file and its outcome, so the start line only doubled each import.
+ */
+export const isFeedNoise = (action: string) => isAuthAction(action) || action === "IMPORT_STARTED";
+
+/** Import slugs as a person would say them: "access-grants" -> "Access grants". */
+const entityLabel = (slug: string) => {
+  const words = slug.replace(/-/g, " ");
+  return (words.charAt(0).toUpperCase() + words.slice(1)).replace(/\bphi\b/i, "PHI");
+};
+
 export const auditIconFor = (action: string): DomainIconName =>
   AUDIT_ACTION_GROUPS.find(g => g.value !== "all" && g.match(action))?.icon ?? "audit";
 
@@ -57,7 +70,11 @@ const sentence = (v: string) => v.charAt(0) + v.slice(1).toLowerCase().replace(/
 export function describeAuditSubject(e: ApiAuditEntry): string | null {
   const m = e.metadata ?? {};
   const str = (k: string) => (typeof m[k] === "string" && m[k] ? (m[k] as string) : null);
-  const label = str("name") ?? str("title") ?? (e.action.startsWith("IMPORT") ? str("entity") : null);
+  if (e.action.startsWith("IMPORT") && str("entity")) {
+    const n = typeof m.imported === "number" ? m.imported : null;
+    return n != null ? `${entityLabel(str("entity")!)} · ${n} row${n === 1 ? "" : "s"}` : entityLabel(str("entity")!);
+  }
+  const label = str("name") ?? str("title");
   const base = label ?? (e.entityType ? `${e.entityType}${e.entityId != null ? ` #${e.entityId}` : ""}` : null);
   const from = str("from"), to = str("to");
   if (base && from && to) return `${base} · ${sentence(from)} → ${sentence(to)}`;
