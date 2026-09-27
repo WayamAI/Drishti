@@ -9,6 +9,22 @@ import { PageHeader, Field, FieldGroup, EntityAvatar, MetricCard } from "@/compo
 import { useDataFlows, useRawDataFlows } from "@/hooks/useDataFlows";
 import { notify } from "@/lib/notify";
 import { LOCALE } from "@/lib/format";
+import { remediationLink } from "@/lib/remediationLink";
+import type { ApiDataFlow, RemediationSeverity } from "@/lib/apiTypes";
+
+type Selection = { kind: "node"; id: string } | { kind: "flow"; index: number } | null;
+
+const TONE_BADGE = { ok: "success", warn: "warning", violation: "danger" } as const;
+const TONE_WORD = { ok: "Compliant", warn: "Warning", violation: "Violation" } as const;
+
+/** Past this many rows an inspector list turns into a dropdown. */
+const INSPECTOR_LIST_MAX = 5;
+
+const SEVERITY_FOR: Record<NonNullable<ApiDataFlow["sensitivity"]>, RemediationSeverity> = {
+  CRITICAL: "CRITICAL", HIGH: "HIGH", MEDIUM: "MEDIUM", LOW: "LOW",
+};
+
+const fmt = (n: number) => n.toLocaleString(LOCALE);
 
 /**
  * PHI flow map — where patient data actually moves.
@@ -32,7 +48,9 @@ export default function PhiFlow() {
   const rawFlows = useRawDataFlows();
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const [selected, setSelected] = useState<FlowNode | null>(null);
+  const [sel, setSel] = useState<Selection>(null);
+  const openNode = useCallback((id: string) => setSel({ kind: "node", id }), []);
+  const openFlow = useCallback((index: number) => setSel({ kind: "flow", index }), []);
   const [filter, setFilter] = useState("all");
   const [phiType, setPhiType] = useState("all");
 
@@ -128,10 +146,36 @@ export default function PhiFlow() {
     notify.success("Flow map downloaded");
   }, []);
 
-  const phiForNode = useMemo(() => {
-    if (!selected || !rawFlows.data) return [];
-    return rawFlows.data.filter(f => f.source === selected.name || f.target === selected.name);
-  }, [selected, rawFlows.data]);
+  const records = useMemo(() => flows.data ?? [], [flows.data]);
+  const selectedNode = sel?.kind === "node" ? nodes.find(n => n.id === sel.id) ?? null : null;
+  const selectedFlow = sel?.kind === "flow" ? records[sel.index] ?? null : null;
+  const selectedTone = sel?.kind === "flow" ? links[sel.index]?.tone ?? "ok" : "ok";
+
+  /** Every flow in or out of the open system, worst and busiest first. */
+  const nodeFlows = useMemo(() => {
+    if (!selectedNode) return [];
+    const rank = { violation: 0, warn: 1, ok: 2 } as const;
+    return records
+      .map((f, index) => ({ f, index, tone: links[index]?.tone ?? "ok" }))
+      .filter(({ f }) => f.source === selectedNode.name || f.target === selectedNode.name)
+      .sort((a, b) => rank[a.tone] - rank[b.tone] || b.f.recordsPerDay - a.f.recordsPerDay);
+  }, [selectedNode, records, links]);
+
+  const flowLabel = (f: ApiDataFlow) => `${f.source} → ${f.target}`;
+
+  /** Hand-off for an unencrypted flow: the gap is a missing transit control. */
+  const flowRemediation = (f: ApiDataFlow) =>
+    remediationLink({
+      source: "CONTROL",
+      title: `Encrypt ${f.phiType} in transit: ${f.source} → ${f.target}`,
+      description: `${fmt(f.recordsPerDay)} ${f.phiType} records a day move from ${f.source} to ${f.target} without encryption.`,
+      recommendation: "Enforce TLS 1.2+ on the connection (or encrypt the payload), then rescan the flow map to confirm.",
+      severity: f.sensitivity ? SEVERITY_FOR[f.sensitivity] : "HIGH",
+      assetId: f.sourceAssetId,
+      context: `PHI flow ${f.source} → ${f.target} (${f.phiType})`,
+    });
+
+  const activeLinkIndex = sel?.kind === "flow" ? filteredEdges.findIndex(e => e.index === sel.index) : -1;
 
   return (
     <div className="space-y-4">
@@ -182,16 +226,15 @@ export default function PhiFlow() {
           <div className="flex-1" />
           <Btn
             variant="outline"
-            onClick={() => setSelected(nodes.find(n => n.id === summary.firstViolation!.from) ?? null)}
+            onClick={() => summary.firstViolation?.index != null && openFlow(summary.firstViolation.index)}
           >
             Inspect flow
           </Btn>
-          <Btn
-            variant="outline"
-            onClick={() => navigate(`/assets?search=${encodeURIComponent(nameOf(summary.firstViolation!.from))}`)}
-          >
-            Open affected asset
-          </Btn>
+          {filter !== "violations" && summary.violations > 1 && (
+            <Btn variant="outline" onClick={() => setFilter("violations")}>
+              Show all {summary.violations}
+            </Btn>
+          )}
         </div>
       )}
 
@@ -209,6 +252,7 @@ export default function PhiFlow() {
           icon="unlocked" domainIcon="control"
           tone="danger"
           emphasis={summary.violations > 0}
+          onClick={summary.violations > 0 ? () => setFilter("violations") : undefined}
         />
         <MetricCard
           label="Warnings" art="warning"
@@ -223,7 +267,6 @@ export default function PhiFlow() {
           value={flows.data ? summary.inTransit.toLocaleString(LOCALE) : undefined}
           sub="records across all flows"
           icon="record" domainIcon="phi"
-          onClick={() => navigate("/risks")}
         />
       </section>
 
@@ -245,75 +288,159 @@ export default function PhiFlow() {
                 <PhiSankey
                   nodes={visibleNodes}
                   links={filteredEdges}
-                  onSelect={id => setSelected(nodes.find(n => n.id === id) ?? null)}
+                  onSelect={openNode}
+                  onSelectLink={i => { const idx = filteredEdges[i]?.index; if (idx != null) openFlow(idx); }}
+                  activeNodeId={selectedNode?.id ?? null}
+                  activeLinkIndex={activeLinkIndex >= 0 ? activeLinkIndex : null}
                 />
               )}
             </div>
           )}
         </DataState>
-        <div className="mt-2 flex flex-wrap items-center gap-4 border-t border-muted pt-3 text-caption text-tertiary">
-          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-severity-low" /> Compliant</span>
-          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-severity-high" /> Warning</span>
-          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-severity-critical" /> Violation</span>
-          <span className="ml-auto">Node height and ribbon width are proportional to PHI records/day</span>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-muted pt-3 text-caption text-tertiary">
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-severity-low" /> Encrypted</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-severity-high" /> Needs review</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-severity-critical" /> Unencrypted</span>
+          <span className="sm:ml-auto">Bar height and ribbon width are PHI records a day. Click a system or a ribbon to inspect it.</span>
         </div>
       </Card>
 
-      {/* Node drawer — only fields the API actually returns. */}
-      <SlideOver open={!!selected} onClose={() => setSelected(null)} title={selected?.name} width={380}>
-        {selected && (
+      {/* System inspector — only fields the API actually returns. */}
+      <SlideOver open={!!selectedNode} onClose={() => setSel(null)} title={selectedNode?.name} width={400}>
+        {selectedNode && (
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <EntityAvatar
-                icon="asset"
-                tone={selected.status === "ok" ? "success" : selected.status === "warn" ? "warning" : "danger"}
-                size="lg"
-              />
+              <EntityAvatar icon="asset" tone={TONE_BADGE[selectedNode.status]} size="lg" />
               <div>
-                <Badge tone={selected.status === "ok" ? "success" : selected.status === "warn" ? "warning" : "danger"}>
-                  {selected.status === "ok" ? "Compliant" : selected.status === "warn" ? "Warning" : "Violation"}
-                </Badge>
-                <p className="mt-1.5 text-body-sm text-tertiary">
-                  {selected.records.toLocaleString(LOCALE)} PHI records/day
-                </p>
+                <Badge tone={TONE_BADGE[selectedNode.status]}>{TONE_WORD[selectedNode.status]}</Badge>
+                <p className="mt-1.5 text-body-sm text-tertiary">{fmt(selectedNode.records)} PHI records a day</p>
               </div>
             </div>
 
             <FieldGroup>
-              <Field label="Records / day" value={selected.records.toLocaleString(LOCALE)} />
+              <Field label="Records / day" value={fmt(selectedNode.records)} />
               <Field
                 label="Encryption"
                 value={
-                  selected.encryption === "AES-256"
+                  selectedNode.encryption === "AES-256"
                     ? <Badge tone="success">AES-256</Badge>
                     : <Badge tone="danger">Unencrypted</Badge>
                 }
               />
             </FieldGroup>
 
-            <FieldGroup title={`PHI categories on this node (${phiForNode.length})`}>
-              {phiForNode.length === 0 ? (
-                <p className="py-2 text-body-sm text-quaternary">
-                  No flow records reference this node.
-                </p>
+            <FieldGroup title={`Flows through this system (${nodeFlows.length})`}>
+              {nodeFlows.length === 0 ? (
+                <p className="py-2 text-body-sm text-quaternary">No flow records reference this system.</p>
+              ) : nodeFlows.length > INSPECTOR_LIST_MAX ? (
+                /* A long list pushes the actions below the fold; past a handful
+                   of flows the inspector offers them as a dropdown instead. */
+                <div className="py-2">
+                  <Select
+                    value=""
+                    onChange={e => e.target.value !== "" && openFlow(Number(e.target.value))}
+                    aria-label="Open a flow through this system"
+                    className="w-full"
+                  >
+                    <option value="">
+                      Choose a flow… ({nodeFlows.filter(x => x.tone === "violation").length} unencrypted)
+                    </option>
+                    {nodeFlows.map(({ f, index, tone }) => (
+                      <option key={index} value={index}>
+                        {tone === "violation" ? "⚠ " : ""}{flowLabel(f)} · {f.phiType} · {fmt(f.recordsPerDay)}/day
+                      </option>
+                    ))}
+                  </Select>
+                </div>
               ) : (
-                phiForNode.map((f, i) => (
-                  <Field
-                    key={`${f.source}-${f.target}-${f.phiType}-${i}`}
-                    label={f.phiType}
-                    value={
-                      <span className="flex items-center justify-end gap-2">
-                        <span className="tabular text-tertiary">{f.recordsPerDay.toLocaleString(LOCALE)}/day</span>
-                        {!f.encrypted && <Badge tone="danger">Unencrypted</Badge>}
-                      </span>
-                    }
-                  />
-                ))
+                <ul className="divide-y divide-[var(--sem-stroke-muted)]">
+                  {nodeFlows.map(({ f, index, tone }) => (
+                    <li key={index}>
+                      <button
+                        type="button"
+                        onClick={() => openFlow(index)}
+                        className="flex w-full items-center gap-2 py-2 text-left outline-none hover:bg-action focus-visible:ring-2 focus-visible:ring-active"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-body-sm text-primary">{flowLabel(f)}</span>
+                          <span className="block text-caption text-tertiary">{f.phiType} · {fmt(f.recordsPerDay)}/day</span>
+                        </span>
+                        {tone !== "ok" && <Badge tone={TONE_BADGE[tone]}>{tone === "violation" ? "Unencrypted" : "Review"}</Badge>}
+                        <AppIcon name="chevronRight" size="sm" className="text-quaternary" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               )}
             </FieldGroup>
 
-            <Btn variant="outline" className="w-full" onClick={() => navigate("/access")}>
-              Review who can reach this
+            <div className="grid gap-2">
+              <Btn variant="outline" className="w-full" onClick={() => navigate(`/assets?search=${encodeURIComponent(selectedNode.name)}`)}>
+                Open asset
+              </Btn>
+              <Btn variant="outline" className="w-full" onClick={() => navigate(`/access?search=${encodeURIComponent(selectedNode.name)}`)}>
+                Review who can reach this
+              </Btn>
+            </div>
+          </div>
+        )}
+      </SlideOver>
+
+      {/* Flow inspector — one PHI movement, and the way to get it fixed. */}
+      <SlideOver
+        open={!!selectedFlow}
+        onClose={() => setSel(null)}
+        title={selectedFlow ? `${selectedFlow.phiType} flow` : undefined}
+        width={400}
+        footer={
+          selectedFlow && selectedTone !== "ok" ? (
+            <Btn variant="primary" className="w-full" onClick={() => navigate(flowRemediation(selectedFlow))}>
+              Raise remediation
+            </Btn>
+          ) : undefined
+        }
+      >
+        {selectedFlow && (
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <EntityAvatar icon="dataFlow" tone={TONE_BADGE[selectedTone]} size="lg" />
+              <div>
+                <Badge tone={TONE_BADGE[selectedTone]}>{TONE_WORD[selectedTone]}</Badge>
+                <p className="mt-1.5 text-body-sm text-tertiary">
+                  {selectedTone === "violation"
+                    ? "PHI leaves this system unencrypted."
+                    : selectedTone === "warn" ? "This flow needs review." : "Encrypted in transit."}
+                </p>
+              </div>
+            </div>
+
+            <FieldGroup>
+              <Field label="From" value={<button type="button" className="text-primary underline-offset-2 hover:underline" onClick={() => openNode(nodes.find(n => n.name === selectedFlow.source)?.id ?? "")}>{selectedFlow.source}</button>} />
+              <Field label="To" value={<button type="button" className="text-primary underline-offset-2 hover:underline" onClick={() => openNode(nodes.find(n => n.name === selectedFlow.target)?.id ?? "")}>{selectedFlow.target}</button>} />
+              <Field label="PHI category" value={selectedFlow.phiType} />
+              {selectedFlow.sensitivity && (
+                <Field label="Sensitivity" value={selectedFlow.sensitivity.charAt(0) + selectedFlow.sensitivity.slice(1).toLowerCase()} />
+              )}
+              <Field label="Records / day" value={fmt(selectedFlow.recordsPerDay)} />
+              <Field
+                label="Encryption"
+                value={selectedFlow.encrypted ? <Badge tone="success">Encrypted</Badge> : <Badge tone="danger">Unencrypted</Badge>}
+              />
+            </FieldGroup>
+
+            {selectedTone !== "ok" && (
+              <p className="rounded-lg bg-raised px-3 py-2 text-caption text-tertiary">
+                Raising a remediation opens the form pre-filled with this flow, linked to {selectedFlow.source}.
+                Nothing is created until you confirm it.
+              </p>
+            )}
+
+            <Btn
+              variant="outline"
+              className="w-full"
+              onClick={() => navigate(`/assets?search=${encodeURIComponent(selectedFlow.source)}`)}
+            >
+              Open {selectedFlow.source}
             </Btn>
           </div>
         )}

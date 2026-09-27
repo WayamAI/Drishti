@@ -65,11 +65,13 @@ function deriveStages(nodeIds: string[], links: FlowLink[]): Record<string, numb
 export function toSankeyData(flows: ApiDataFlow[]): { nodes: FlowNode[]; links: FlowLink[] } {
   if (flows.length === 0) return { nodes: [], links: [] };
 
-  const links: FlowLink[] = flows.map(f => ({
+  const links: FlowLink[] = flows.map((f, index) => ({
     from: idOf(f.source),
     to: idOf(f.target),
     value: safeNumber(f.recordsPerDay),
     tone: toneOf(f),
+    phiType: f.phiType,
+    index,
   }));
 
   // Preserve first-seen order so column ordering is stable across refetches.

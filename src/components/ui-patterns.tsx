@@ -4,7 +4,7 @@ import { AppIcon } from "@/components/AppIcon";
 import { DomainIcon, type DomainIconName } from "@/components/DomainIcon";
 import { Drishti3DIcon } from "@/components/Drishti3DIcon";
 import { DOMAIN_TO_3D, type Icon3DName } from "@/lib/icons3d";
-import { Badge } from "@/components/ui-bits";
+import { Badge, Btn, Select } from "@/components/ui-bits";
 import type { IconName } from "@/lib/icons";
 import type { Tone } from "@/lib/tone";
 import type { RiskBand } from "@/lib/apiTypes";
@@ -452,3 +452,72 @@ export const CopyValue = ({ value, className }: { value: string; className?: str
     </button>
   );
 };
+
+/** Past this many moves, a status footer offers them as a dropdown. */
+const STATUS_BUTTONS_MAX = 2;
+
+/**
+ * "Change status" for an inspector footer.
+ *
+ * A row of one button per allowed move wrapped onto two or three lines once a
+ * record had four or five moves, and the footer grew into the space the
+ * inspector needs for its content. Up to two moves stay as buttons; beyond
+ * that the resolving move keeps its button and the rest sit in a dropdown.
+ */
+export function StatusChanger<S extends string>({
+  options,
+  labelOf,
+  primary,
+  disabled,
+  onChange,
+}: {
+  options: readonly S[];
+  labelOf: (s: S) => string;
+  /** The move worth one click, e.g. RESOLVED. */
+  primary?: S;
+  disabled?: boolean;
+  onChange: (next: S) => void;
+}) {
+  const [pick, setPick] = useState<S | "">("");
+  const quick = primary && options.includes(primary) ? primary : undefined;
+  const rest = options.filter(o => o !== quick);
+
+  return (
+    <div className="w-full">
+      <div className="mb-1.5 text-caption text-tertiary">Change status</div>
+      {options.length <= STATUS_BUTTONS_MAX ? (
+        <div className="flex flex-wrap gap-2">
+          {options.map(next => (
+            <Btn key={next} variant={next === quick ? "primary" : "outline"} disabled={disabled} onClick={() => onChange(next)}>
+              {labelOf(next)}
+            </Btn>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          {quick && (
+            <Btn variant="primary" disabled={disabled} onClick={() => onChange(quick)}>
+              {labelOf(quick)}
+            </Btn>
+          )}
+          <Select
+            value={pick}
+            onChange={e => setPick(e.target.value as S | "")}
+            aria-label="Move to status"
+            className="min-w-0 flex-1"
+          >
+            <option value="">Move to…</option>
+            {rest.map(o => <option key={o} value={o}>{labelOf(o)}</option>)}
+          </Select>
+          <Btn
+            variant="outline"
+            disabled={disabled || pick === ""}
+            onClick={() => { if (pick) { onChange(pick); setPick(""); } }}
+          >
+            Update
+          </Btn>
+        </div>
+      )}
+    </div>
+  );
+}

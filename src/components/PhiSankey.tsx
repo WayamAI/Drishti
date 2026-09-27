@@ -1,17 +1,27 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { LOCALE } from "@/lib/format";
 
 /**
  * PHI flow, drawn as a volume-weighted Sankey.
  *
- * The previous view was a node-and-arrow tree: every box was the same size and
- * every connector the same width, so it showed topology and nothing else. The
- * legend even claimed "line thickness proportional to data volume" while all
- * lines were identical.
+ * Geometry carries the data: a system is a bar whose height is its daily PHI
+ * throughput, and a ribbon is exactly as thick as the records it moves — the
+ * same thickness at both ends, on one scale for the whole map. Colour says
+ * whether that movement is encrypted.
  *
- * Here geometry carries the data. Node height and ribbon thickness are both
- * proportional to PHI records/day, so the two facts that matter read instantly:
- * where the volume concentrates, and which of those heavy paths is unencrypted.
+ * What changed from the card layout, and why:
+ *   - Systems were 152px cards whose height tracked volume, so the busiest
+ *     systems became tall empty boxes and a column of small systems ran off
+ *     the top and bottom of the chart. Bars with the label beside them keep
+ *     the volume encoding without the dead space, and the scale is solved per
+ *     column so every system fits.
+ *   - A ribbon's thickness was its share of each node's edge, so one flow
+ *     could be thick at one end and thin at the other. It is now its volume.
+ *   - Systems were placed in API order, so ribbons crossed needlessly. Each
+ *     column is ordered by where its flows come from and go to.
+ *   - Hover had only a native tooltip, and a flow could not be selected.
+ *     Hovering a system or a ribbon now isolates it and names it; clicking a
+ *     ribbon opens that flow.
  */
 
 export type FlowTone = "ok" | "warn" | "violation";
@@ -26,229 +36,396 @@ export type FlowNode = {
   encryption: "AES-256" | "Unencrypted";
 };
 
-export type FlowLink = { from: string; to: string; value: number; tone: FlowTone };
+export type FlowLink = {
+  from: string;
+  to: string;
+  value: number;
+  tone: FlowTone;
+  /** PHI category this movement carries, when the API names one. */
+  phiType?: string;
+  /** Position of the source record in the API response. */
+  index?: number;
+};
 
-const TONE_STROKE: Record<FlowTone, string> = {
+const TONE_FILL: Record<FlowTone, string> = {
   ok: "var(--sem-severity-low)",
   warn: "var(--sem-severity-high)",
   violation: "var(--sem-severity-critical)",
 };
 
+const TONE_LABEL: Record<FlowTone, string> = {
+  ok: "Encrypted in transit",
+  warn: "Needs review",
+  violation: "Unencrypted in transit",
+};
+
 const STAGE_LABELS = ["Ingress", "Core system", "Downstream systems", "External recipients"];
 
-// Geometry. Cards are wide enough to hold a label; the gutters hold the ribbons.
-const CARD_W = 152;
-const GUTTER = 96;
-/* How far the map may shrink to fit before it scrolls instead. Below this
-   the 11.5px labels drop under ~9.5px and stop being comfortably legible. */
-const MIN_SCALE = 0.82;
-const H = 470;
-const NODE_GAP = 14;
-const TOP = 26;
+const NODE_W = 10;
+/** Vertical room one system needs for its two-line label. */
+const MIN_SLOT = 34;
+const NODE_GAP = 10;
+const TOP = 30;
+const BOTTOM = 8;
+/** Room right of the last column for its labels. */
+const LABEL_TAIL = 176;
+const MIN_GUTTER = 168;
+const LABEL_PAD = 8;
+
+type Box = { x: number; y: number; h: number; slotY: number; slot: number; node: FlowNode };
+type Ribbon = FlowLink & { i: number; d: string; thick: number };
+type Hover = { kind: "node"; id: string } | { kind: "link"; i: number } | null;
+
+const finite = (v: number) => (Number.isFinite(v) ? Math.max(0, v) : 0);
+const fmt = (n: number) => finite(n).toLocaleString(LOCALE);
+
+/** Container width, so the map fills the card instead of floating in it. */
+function useWidth<T extends HTMLElement>(fallback: number) {
+  const ref = useRef<T>(null);
+  const [width, setWidth] = useState(fallback);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([entry]) => {
+      const w = Math.round(entry.contentRect.width);
+      if (w > 0) setWidth(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, width] as const;
+}
 
 export function PhiSankey({
   nodes,
   links,
   onSelect,
+  onSelectLink,
+  activeNodeId,
+  activeLinkIndex,
 }: {
   nodes: FlowNode[];
   links: FlowLink[];
   onSelect: (id: string) => void;
+  /** Called with the link's position in `links`. */
+  onSelectLink?: (i: number) => void;
+  /** Kept highlighted while its inspector is open. */
+  activeNodeId?: string | null;
+  activeLinkIndex?: number | null;
 }) {
-  const [hoverId, setHoverId] = useState<string | null>(null);
+  const [wrapRef, containerW] = useWidth<HTMLDivElement>(960);
+  const [hover, setHover] = useState<Hover>(null);
+  const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
 
   const layout = useMemo(() => {
     /* Real data arrives over the wire, so a stage may be absent, fractional or
-       NaN. Geometry maths on a NaN silently poisons every downstream value and
-       takes the whole chart out, so inputs are coerced to a sane integer here
-       rather than trusted. */
-    const stageOf = (n: FlowNode) =>
-      Number.isFinite(n.stage) ? Math.max(0, Math.round(n.stage)) : 0;
-    const valueOf = (v: number) => (Number.isFinite(v) ? Math.max(0, v) : 0);
+       NaN. A NaN poisons every coordinate downstream, so inputs are coerced
+       here rather than trusted. */
+    const stageOf = (n: FlowNode) => (Number.isFinite(n.stage) ? Math.max(0, Math.round(n.stage)) : 0);
+    const known = new Set(nodes.map(n => n.id));
+    const live = links
+      .map((l, i) => ({ ...l, value: finite(l.value), i }))
+      .filter(l => known.has(l.from) && known.has(l.to));
+
+    const inSum: Record<string, number> = {};
+    const outSum: Record<string, number> = {};
+    live.forEach(l => {
+      outSum[l.from] = (outSum[l.from] ?? 0) + l.value;
+      inSum[l.to] = (inSum[l.to] ?? 0) + l.value;
+    });
+    const through = (id: string) => Math.max(inSum[id] ?? 0, outSum[id] ?? 0);
 
     const stages = nodes.length ? Math.max(...nodes.map(stageOf)) + 1 : 0;
-    const byStage: FlowNode[][] = Array.from({ length: stages }, () => []);
-    nodes.forEach(n => byStage[stageOf(n)].push(n));
+    const cols: FlowNode[][] = Array.from({ length: stages }, () => []);
+    nodes.forEach(n => cols[stageOf(n)].push(n));
 
-    // A node is as tall as the larger of what flows in and what flows out.
-    const throughput = (id: string) => {
-      const inSum = links.filter(l => l.to === id).reduce((a, l) => a + valueOf(l.value), 0);
-      const outSum = links.filter(l => l.from === id).reduce((a, l) => a + valueOf(l.value), 0);
-      return Math.max(inSum, outSum, 1);
+    const busiestCount = Math.max(1, ...cols.map(c => c.length));
+    const H = Math.min(640, Math.max(360, Math.round(busiestCount * (MIN_SLOT + NODE_GAP) * 1.35)));
+
+    /* One scale for the whole map, so thickness is comparable everywhere.
+       Solved per column: small systems take a fixed slot for their label, the
+       rest share what is left in proportion to volume; the tightest column
+       sets the scale, so no column can overflow. */
+    const colScale = (col: FlowNode[]) => {
+      const gaps = Math.max(0, col.length - 1) * NODE_GAP;
+      let small = new Set<string>();
+      let s = Infinity;
+      for (let pass = 0; pass < 6; pass++) {
+        const big = col.filter(n => !small.has(n.id));
+        const bigSum = big.reduce((a, n) => a + through(n.id), 0);
+        s = bigSum > 0 ? (H - gaps - small.size * MIN_SLOT) / bigSum : Infinity;
+        const next = new Set(col.filter(n => through(n.id) * s < MIN_SLOT).map(n => n.id));
+        if (next.size === small.size) break;
+        small = next;
+      }
+      return s;
     };
+    const scales = cols.map(colScale).filter(s => Number.isFinite(s) && s > 0);
+    const peak = Math.max(1, ...nodes.map(n => through(n.id)));
+    const scale = scales.length ? Math.min(...scales) : MIN_SLOT / peak;
 
-    // One scale across every column, otherwise thickness isn't comparable.
-    const stageTotals = byStage.map(col => col.reduce((a, n) => a + throughput(n.id), 0));
-    const busiest = stageTotals.length ? Math.max(...stageTotals) : 0;
-    const busiestIdx = Math.max(0, stageTotals.indexOf(busiest));
-    const gapsInBusiest = Math.max(0, (byStage[busiestIdx]?.length ?? 1) - 1) * NODE_GAP;
-    const scale = busiest > 0 ? (H - gapsInBusiest) / busiest : 0;
+    const gutter = stages > 1
+      ? Math.max(MIN_GUTTER, (containerW - LABEL_TAIL - stages * NODE_W) / (stages - 1))
+      : MIN_GUTTER;
+    const colX = (s: number) => s * (NODE_W + gutter);
 
-    const MIN_H = 26; // keeps a one-line label readable in the smallest node
-    const box: Record<string, { x: number; y: number; w: number; h: number; node: FlowNode }> = {};
-
-    byStage.forEach((col, s) => {
-      const heights = col.map(n => Math.max(MIN_H, throughput(n.id) * scale));
-      const total = heights.reduce((a, b) => a + b, 0) + (col.length - 1) * NODE_GAP;
-      let y = TOP + (H - total) / 2;
-      col.forEach((n, idx) => {
-        box[n.id] = { x: s * (CARD_W + GUTTER), y, w: CARD_W, h: heights[idx], node: n };
-        y += heights[idx] + NODE_GAP;
+    const box: Record<string, Box> = {};
+    const place = () => {
+      cols.forEach((col, s) => {
+        const slots = col.map(n => Math.max(MIN_SLOT, through(n.id) * scale));
+        const total = slots.reduce((a, b) => a + b, 0) + Math.max(0, col.length - 1) * NODE_GAP;
+        let y = TOP + Math.max(0, (H - total) / 2);
+        col.forEach((n, k) => {
+          const h = Math.max(2, through(n.id) * scale);
+          box[n.id] = { x: colX(s), slotY: y, slot: slots[k], y: y + (slots[k] - h) / 2, h, node: n };
+          y += slots[k] + NODE_GAP;
+        });
       });
+    };
+    const mid = (id: string) => box[id].y + box[id].h / 2;
+
+    /* Order each column by the weighted position of what it connects to — a
+       few sweeps of the barycentre heuristic, which removes most crossings.
+       Systems with no neighbours on the swept side keep their place. */
+    const sweep = (dir: "down" | "up") => {
+      const order = dir === "down" ? cols.map((_, s) => s).slice(1) : cols.map((_, s) => s).reverse().slice(1);
+      for (const s of order) {
+        const bary = (n: FlowNode) => {
+          const rel = live.filter(l => (dir === "down" ? l.to === n.id : l.from === n.id));
+          const w = rel.reduce((a, l) => a + l.value, 0);
+          if (!w) return mid(n.id);
+          return rel.reduce((a, l) => a + mid(dir === "down" ? l.from : l.to) * l.value, 0) / w;
+        };
+        const keyed = cols[s].map(n => ({ n, k: bary(n) }));
+        keyed.sort((a, b) => a.k - b.k);
+        cols[s] = keyed.map(x => x.n);
+        place();
+      }
+    };
+    place();
+    sweep("down"); sweep("up"); sweep("down");
+
+    // Stack ribbons on each bar in the order their far ends sit, centred.
+    const outs: Record<string, typeof live> = {};
+    const ins: Record<string, typeof live> = {};
+    live.forEach(l => { (outs[l.from] ??= []).push(l); (ins[l.to] ??= []).push(l); });
+    const thick = (v: number) => Math.max(1.5, v * scale);
+    const outY: Record<number, number> = {};
+    const inY: Record<number, number> = {};
+    for (const [id, list] of Object.entries(outs)) {
+      list.sort((a, b) => mid(a.to) - mid(b.to));
+      const sum = list.reduce((a, l) => a + thick(l.value), 0);
+      let y = box[id].y + Math.max(0, (box[id].h - sum) / 2);
+      list.forEach(l => { outY[l.i] = y; y += thick(l.value); });
+    }
+    for (const [id, list] of Object.entries(ins)) {
+      list.sort((a, b) => mid(a.from) - mid(b.from));
+      const sum = list.reduce((a, l) => a + thick(l.value), 0);
+      let y = box[id].y + Math.max(0, (box[id].h - sum) / 2);
+      list.forEach(l => { inY[l.i] = y; y += thick(l.value); });
+    }
+
+    const ribbons: Ribbon[] = live.map(l => {
+      const t = thick(l.value);
+      const x0 = box[l.from].x + NODE_W, x1 = box[l.to].x;
+      const ay = outY[l.i], by = inY[l.i];
+      const c = (x1 - x0) * 0.5;
+      const d = `M${x0},${ay} C${x0 + c},${ay} ${x1 - c},${by} ${x1},${by} L${x1},${by + t} C${x1 - c},${by + t} ${x0 + c},${ay + t} ${x0},${ay + t} Z`;
+      return { ...l, d, thick: t };
     });
+    // Violations draw last so a leak is never hidden under a compliant flow.
+    const rank: Record<FlowTone, number> = { ok: 0, warn: 1, violation: 2 };
+    ribbons.sort((a, b) => rank[a.tone] - rank[b.tone]);
 
-    // Stack ribbons along each node's edge in a stable order.
-    const outCursor: Record<string, number> = {};
-    const inCursor: Record<string, number> = {};
-    const ribbons = links.map(l => {
-      const a = box[l.from], b = box[l.to];
-      if (!a || !b) return null;
+    const width = stages ? colX(stages - 1) + NODE_W + LABEL_TAIL : 0;
+    return { box, ribbons, width, height: TOP + H + BOTTOM, stages, gutter, colX, inSum, outSum };
+  }, [nodes, links, containerW]);
 
-      const aOut = links.filter(x => x.from === l.from).reduce((s, x) => s + x.value, 0);
-      const bIn = links.filter(x => x.to === l.to).reduce((s, x) => s + x.value, 0);
-      const aThick = (l.value / aOut) * a.h;
-      const bThick = (l.value / bIn) * b.h;
+  /* What is lit: the hovered thing, else whatever the inspector has open. */
+  const focus: Hover =
+    hover ??
+    (activeLinkIndex != null ? { kind: "link", i: activeLinkIndex }
+      : activeNodeId ? { kind: "node", id: activeNodeId } : null);
+  const litLink = (r: Ribbon) =>
+    !focus || (focus.kind === "link" ? focus.i === r.i : r.from === focus.id || r.to === focus.id);
+  const litNode = (id: string) => {
+    if (!focus) return true;
+    if (focus.kind === "node") return focus.id === id || layout.ribbons.some(r => litLink(r) && (r.from === id || r.to === id));
+    const r = layout.ribbons.find(x => x.i === focus.i);
+    return !!r && (r.from === id || r.to === id);
+  };
 
-      const ay = a.y + (outCursor[l.from] ?? 0);
-      const by = b.y + (inCursor[l.to] ?? 0);
-      outCursor[l.from] = (outCursor[l.from] ?? 0) + aThick;
-      inCursor[l.to] = (inCursor[l.to] ?? 0) + bThick;
+  const labelMax = Math.min(layout.gutter, LABEL_TAIL) - LABEL_PAD * 2;
+  const move = (e: React.MouseEvent) => {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (rect) setTip({ x: e.clientX - rect.left + (wrapRef.current?.scrollLeft ?? 0), y: e.clientY - rect.top });
+  };
+  const leave = () => { setHover(null); setTip(null); };
 
-      const x0 = a.x + a.w, x1 = b.x;
-      const c0 = x0 + (x1 - x0) * 0.5, c1 = x1 - (x1 - x0) * 0.5;
-      const d = [
-        `M${x0},${ay}`,
-        `C${c0},${ay} ${c1},${by} ${x1},${by}`,
-        `L${x1},${by + bThick}`,
-        `C${c1},${by + bThick} ${c0},${ay + aThick} ${x0},${ay + aThick}`,
-        "Z",
-      ].join(" ");
-      return { ...l, d };
-    }).filter(Boolean) as (FlowLink & { d: string })[];
-
-    const width = stages * CARD_W + (stages - 1) * GUTTER;
-    return { box, ribbons, width, stages };
-  }, [nodes, links]);
-
-  const dim = (id: string, from?: string, to?: string) =>
-    hoverId !== null && hoverId !== id && hoverId !== from && hoverId !== to;
+  const tipBody = (() => {
+    if (!hover || !tip) return null;
+    if (hover.kind === "link") {
+      const r = layout.ribbons.find(x => x.i === hover.i);
+      if (!r) return null;
+      return (
+        <>
+          <p className="font-semibold text-primary">
+            {layout.box[r.from]?.node.name} → {layout.box[r.to]?.node.name}
+          </p>
+          {r.phiType && <p className="text-tertiary">{r.phiType}</p>}
+          <p className="tabular text-secondary">{fmt(r.value)} records / day</p>
+          <p className="flex items-center gap-1.5 text-secondary">
+            <span className="h-2 w-2 rounded-full" style={{ background: TONE_FILL[r.tone] }} />
+            {TONE_LABEL[r.tone]}
+          </p>
+          <p className="mt-1 text-quaternary">Click to inspect this flow</p>
+        </>
+      );
+    }
+    const b = layout.box[hover.id];
+    if (!b) return null;
+    const touching = layout.ribbons.filter(r => r.from === hover.id || r.to === hover.id);
+    const bad = touching.filter(r => r.tone === "violation").length;
+    return (
+      <>
+        <p className="font-semibold text-primary">{b.node.name}</p>
+        <p className="tabular text-secondary">
+          In {fmt(layout.inSum[hover.id] ?? 0)} · Out {fmt(layout.outSum[hover.id] ?? 0)} / day
+        </p>
+        <p className="text-secondary">
+          {touching.length} flow{touching.length === 1 ? "" : "s"}
+          {bad ? <span className="text-feedback-error"> · {bad} unencrypted</span> : null}
+        </p>
+        <p className="mt-1 text-quaternary">Click for this system's detail</p>
+      </>
+    );
+  })();
 
   return (
-    <svg
-      viewBox={`0 0 ${layout.width} ${H + TOP + 34}`}
-      /*
-       * Scale down a little to fit, never a lot. With w-full alone the
-       * viewBox shrank the map to the container, so at 390px the diagram
-       * rendered at about a third and every label came out under 4px. At
-       * 1:1 only, a five-stage estate clipped behind a scrollbar on an
-       * ordinary desktop. MIN_SCALE is the compromise; past it, the wrapper
-       * scrolls.
-       */
-      style={{ minWidth: Math.round(layout.width * MIN_SCALE) }}
-      className="h-[540px] w-full"
-      role="img"
-      aria-label="PHI data flow, sized by daily record volume"
-    >
-      {/* stage captions */}
-      {Array.from({ length: layout.stages }, (_, s) => STAGE_LABELS[s] ?? "Onward recipients").map((label, s) => (
-        <text
-          key={s}
-          x={s * (CARD_W + GUTTER)}
-          y={12}
-          fill="var(--sem-text-quaternary)"
-          fontSize="10"
-          fontWeight="500"
-          style={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
-        >
-          {label}
-        </text>
-      ))}
-
-      {/* ribbons under the cards */}
-      <g>
-        {layout.ribbons.map((r, i) => (
-          <path
-            key={i}
-            d={r.d}
-            fill={TONE_STROKE[r.tone]}
-            opacity={dim("", r.from, r.to) ? 0.12 : r.tone === "violation" ? 0.5 : 0.34}
-            style={{ transition: "opacity 200ms" }}
+    <div ref={wrapRef} className="relative w-full" onMouseLeave={leave}>
+      <svg
+        viewBox={`0 0 ${layout.width} ${layout.height}`}
+        width={layout.width}
+        height={layout.height}
+        className="block max-w-none"
+        role="img"
+        aria-label="PHI data flow, sized by daily record volume"
+      >
+        {/* stage captions */}
+        {Array.from({ length: layout.stages }, (_, s) => STAGE_LABELS[s] ?? "Onward recipients").map((label, s) => (
+          <text
+            key={s}
+            x={layout.colX(s)}
+            y={12}
+            fill="var(--sem-text-quaternary)"
+            fontSize="10"
+            fontWeight="500"
+            style={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
           >
-            <title>{`${r.value.toLocaleString(LOCALE)} PHI records/day`}</title>
-          </path>
+            {label}
+          </text>
         ))}
-      </g>
 
-      {/* nodes */}
-      {Object.values(layout.box).map(({ x, y, w, h, node }) => {
-        const stroke = TONE_STROKE[node.status];
-        const faded = dim(node.id, undefined, undefined) &&
-          !layout.ribbons.some(r => (r.from === hoverId && r.to === node.id) || (r.to === hoverId && r.from === node.id));
-        return (
-          <g
-            key={node.id}
-            transform={`translate(${x},${y})`}
-            className="cursor-pointer"
-            onClick={() => onSelect(node.id)}
-            onMouseEnter={() => setHoverId(node.id)}
-            onMouseLeave={() => setHoverId(null)}
-            opacity={faded ? 0.35 : 1}
-            style={{ transition: "opacity 200ms" }}
-          >
-            <rect
-              width={w} height={h} rx="6"
-              fill="var(--sem-surface-raised-x2)"
-              stroke={stroke}
-              strokeWidth={node.status === "violation" ? 1.75 : 1}
-            />
-            {/* status spine: a solid edge reads at any node height */}
-            <rect width="3" height={h} rx="1.5" fill={stroke} />
-
-            <text x="11" y={h >= 40 ? 16 : h / 2 + 4} fill="var(--sem-text-primary)" fontSize="11.5" fontWeight="600">
-              {fitLabel(node.name, w - 20)}
-            </text>
-            {h >= 40 ? (
-              <text x="11" y="30" fill="var(--sem-text-tertiary)" fontSize="10">
-                {(Number.isFinite(node.records) ? node.records : 0).toLocaleString(LOCALE)} rec/day
-              </text>
-            ) : fitsBeside(node.name, recordsLabel(node.records), w) ? (
-              /* Too short for a second line: fold the volume onto the label row,
-                 but only when it will not collide with the name. */
-              <text x={w - 9} y={h / 2 + 4} textAnchor="end" fill="var(--sem-text-tertiary)" fontSize="9.5">
-                {recordsLabel(node.records)}
-              </text>
-            ) : null}
-            {h >= 58 && (
-              <text
-                x="11" y="45"
-                fill={node.encryption === "AES-256" ? "var(--sem-feedback-success-icon)" : "var(--sem-severity-critical)"}
-                fontSize="9.5" fontWeight="600"
+        {/* ribbons under the bars */}
+        <g>
+          {layout.ribbons.map(r => {
+            const on = litLink(r);
+            const hot = focus?.kind === "link" && focus.i === r.i;
+            return (
+              <path
+                key={r.i}
+                d={r.d}
+                fill={TONE_FILL[r.tone]}
+                opacity={!on ? 0.07 : hot ? 0.72 : focus ? 0.55 : r.tone === "ok" ? 0.26 : 0.4}
+                className={onSelectLink ? "cursor-pointer outline-none" : undefined}
+                style={{ transition: "opacity 160ms" }}
+                tabIndex={onSelectLink ? 0 : undefined}
+                role={onSelectLink ? "button" : undefined}
+                aria-label={`${layout.box[r.from]?.node.name} to ${layout.box[r.to]?.node.name}${r.phiType ? `, ${r.phiType}` : ""}: ${fmt(r.value)} records a day, ${TONE_LABEL[r.tone].toLowerCase()}`}
+                onMouseEnter={() => setHover({ kind: "link", i: r.i })}
+                onMouseMove={move}
+                onFocus={() => setHover({ kind: "link", i: r.i })}
+                onBlur={leave}
+                onClick={() => onSelectLink?.(r.i)}
+                onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelectLink?.(r.i); } }}
               >
-                {node.encryption === "AES-256" ? "AES-256" : "UNENCRYPTED"}
-              </text>
-            )}
-            <title>{`${node.name} · ${(Number.isFinite(node.records) ? node.records : 0).toLocaleString(LOCALE)} PHI records/day · ${node.encryption}`}</title>
-          </g>
-        );
-      })}
-    </svg>
+                <title>{`${fmt(r.value)} PHI records/day`}</title>
+              </path>
+            );
+          })}
+        </g>
+
+        {/* systems: a bar, and its label beside it */}
+        {Object.values(layout.box).map(({ x, y, h, slotY, slot, node }) => {
+          const on = litNode(node.id);
+          const cy = slotY + slot / 2;
+          const unencrypted = node.encryption !== "AES-256";
+          return (
+            <g
+              key={node.id}
+              className="cursor-pointer outline-none"
+              tabIndex={0}
+              role="button"
+              aria-label={`${node.name}, ${fmt(node.records)} records a day${unencrypted ? ", unencrypted" : ""}`}
+              opacity={on ? 1 : 0.3}
+              style={{ transition: "opacity 160ms" }}
+              onClick={() => onSelect(node.id)}
+              onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(node.id); } }}
+              onMouseEnter={() => setHover({ kind: "node", id: node.id })}
+              onMouseMove={move}
+              onFocus={() => setHover({ kind: "node", id: node.id })}
+              onBlur={leave}
+            >
+              <title>{`${node.name} · ${fmt(node.records)} PHI records/day · ${node.encryption}`}</title>
+              <rect x={x} y={y} width={NODE_W} height={h} rx="2" fill={TONE_FILL[node.status]} />
+              {/* generous hit area: the bar alone is too thin to aim at */}
+              <rect x={x - 4} y={slotY} width={NODE_W + LABEL_PAD + labelMax} height={slot} fill="transparent" />
+              <g
+                style={{ paintOrder: "stroke" }}
+                stroke="var(--sem-surface-container)"
+                strokeWidth="3"
+                strokeOpacity={0.85}
+                strokeLinejoin="round"
+                pointerEvents="none"
+              >
+                <text x={x + NODE_W + LABEL_PAD} y={cy - 2} fill="var(--sem-text-primary)" fontSize="12" fontWeight="600">
+                  {fitLabel(node.name, labelMax)}
+                </text>
+                <text x={x + NODE_W + LABEL_PAD} y={cy + 12} fontSize="10.5">
+                  <tspan fill="var(--sem-text-tertiary)">{fmt(node.records)}/day</tspan>
+                  {unencrypted && (
+                    <tspan fill="var(--sem-severity-critical)" fontWeight="600"> · Unencrypted</tspan>
+                  )}
+                </text>
+              </g>
+            </g>
+          );
+        })}
+      </svg>
+
+      {tipBody && tip && (
+        <div
+          role="tooltip"
+          className="pointer-events-none absolute z-10 w-max max-w-[260px] rounded-lg border border-muted bg-container px-3 py-2 text-caption shadow-lg"
+          style={{
+            left: Math.min(tip.x + 14, Math.max(0, layout.width - 270)),
+            top: tip.y + 16,
+          }}
+        >
+          {tipBody}
+        </div>
+      )}
+    </div>
   );
 }
 
 /* SVG text does not ellipsise, so labels are fitted by estimate. Geist at
-   11.5px averages ~6.3px per character in the bold weight used here. */
-const NAME_CHAR_W = 6.3;
-const COUNT_CHAR_W = 5.4;
-
-const recordsLabel = (records: number) => (Number.isFinite(records) ? records : 0).toLocaleString(LOCALE);
+   12px averages ~6.6px per character in the bold weight used here. */
+const NAME_CHAR_W = 6.6;
 
 function fitLabel(name: string, maxWidth: number): string {
-  const max = Math.floor(maxWidth / NAME_CHAR_W);
+  const max = Math.max(4, Math.floor(maxWidth / NAME_CHAR_W));
   return name.length <= max ? name : `${name.slice(0, Math.max(1, max - 1)).trimEnd()}…`;
-}
-
-function fitsBeside(name: string, count: string, cardWidth: number): boolean {
-  return 11 + name.length * NAME_CHAR_W + 10 + count.length * COUNT_CHAR_W + 9 <= cardWidth;
 }
 
 export default PhiSankey;

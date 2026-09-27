@@ -56,7 +56,7 @@ describe("PhiSankey fed by mapper output", () => {
   it("labels an unencrypted system as a violation", () => {
     const { nodes, links } = toSankeyData(FLOWS);
     render(<PhiSankey nodes={nodes} links={links} onSelect={vi.fn()} />);
-    expect(screen.getAllByText("UNENCRYPTED").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Unencrypted/).length).toBeGreaterThan(0);
   });
 });
 

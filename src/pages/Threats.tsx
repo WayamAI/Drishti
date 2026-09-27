@@ -5,7 +5,7 @@ import { AppIcon } from "@/components/AppIcon";
 import { DataTable, type Column } from "@/components/DataTable";
 import { listAsQuery } from "@/lib/listQuery";
 import {
-  PageHeader, MetricCard, Field, FieldGroup, FilterBar, EntityAvatar,
+  PageHeader, MetricCard, Field, FieldGroup, FilterBar, EntityAvatar, StatusChanger,
 } from "@/components/ui-patterns";
 import { useThreats, useThreatSummary, useThreat } from "@/hooks/useThreats";
 import { useListControls } from "@/hooks/useListControls";
@@ -263,22 +263,13 @@ function ThreatDrawer({ id, onClose }: { id: number | null; onClose: () => void 
       title={t?.title ?? "Threat"}
       footer={
         t && canWrite && t.allowedTransitions.length > 0 ? (
-          <div className="w-full">
-            <div className="mb-1.5 text-caption text-tertiary">Change status</div>
-            <div className="flex flex-wrap gap-2">
-              {/* Exactly the moves the server will accept. */}
-              {t.allowedTransitions.map(next => (
-                <Btn
-                  key={next}
-                  variant={next === "RESOLVED" ? "primary" : "outline"}
-                  disabled={setStatus.isPending}
-                  onClick={() => void transition(next)}
-                >
-                  {STATUS_LABEL[next]}
-                </Btn>
-              ))}
-            </div>
-          </div>
+          <StatusChanger
+            options={t.allowedTransitions}
+            labelOf={next => STATUS_LABEL[next]}
+            primary="RESOLVED"
+            disabled={setStatus.isPending}
+            onChange={next => void transition(next)}
+          />
         ) : undefined
       }
     >

@@ -7,7 +7,7 @@ import { AppIcon } from "@/components/AppIcon";
 import { DataTable, type Column } from "@/components/DataTable";
 import { listAsQuery } from "@/lib/listQuery";
 import {
-  PageHeader, MetricCard, Field, FieldGroup, FilterBar, EntityAvatar,
+  PageHeader, MetricCard, Field, FieldGroup, FilterBar, EntityAvatar, StatusChanger,
 } from "@/components/ui-patterns";
 import {
   useRemediations, useRemediation, useRemediationSummary, useOrgMembers,
@@ -339,21 +339,13 @@ function RemediationDrawer({
       title={r?.title ?? "Finding"}
       footer={
         r && canWrite && transitions.length > 0 ? (
-          <div className="w-full">
-            <div className="mb-1.5 text-caption text-tertiary">Change status</div>
-            <div className="flex flex-wrap gap-2">
-              {transitions.map(next => (
-                <Btn
-                  key={next}
-                  variant={next === "RESOLVED" ? "primary" : "outline"}
-                  disabled={busy}
-                  onClick={() => void run(() => setStatus.mutateAsync({ id: r.id, status: next }), `Marked ${STATUS_LABEL[next].toLowerCase()}`)}
-                >
-                  {STATUS_LABEL[next]}
-                </Btn>
-              ))}
-            </div>
-          </div>
+          <StatusChanger
+            options={transitions}
+            labelOf={next => STATUS_LABEL[next]}
+            primary="RESOLVED"
+            disabled={busy}
+            onChange={next => void run(() => setStatus.mutateAsync({ id: r.id, status: next }), `Marked ${STATUS_LABEL[next].toLowerCase()}`)}
+          />
         ) : undefined
       }
     >
