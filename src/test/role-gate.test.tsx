@@ -5,8 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, type ReactNode } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Layout from "@/components/Layout";
-import { AuthProvider, useAuth } from "@/hooks/use-auth";
-import { ThemeProvider } from "@/hooks/use-theme";
+import { AuthProvider } from "@/components/AuthProvider";
+import { useAuth } from "@/hooks/use-auth";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 /**
  * Role gating is new to this app, so these cover the whole matrix rather than

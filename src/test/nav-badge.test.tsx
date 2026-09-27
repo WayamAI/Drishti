@@ -3,8 +3,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { AuthProvider } from "@/hooks/use-auth";
-import { ThemeProvider } from "@/hooks/use-theme";
+import { AuthProvider } from "@/components/AuthProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui-patterns";
 

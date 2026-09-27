@@ -1,12 +1,6 @@
 import * as React from "react";
+import { ThemeContext, type Theme } from "@/hooks/theme-context";
 
-type Theme = "light" | "dark";
-
-type ThemeContextValue = {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
-  toggleTheme: () => void;
-};
 
 const THEME_STORAGE_KEY = "drishti-theme";
 /**
@@ -15,7 +9,6 @@ const THEME_STORAGE_KEY = "drishti-theme";
  */
 const LEGACY_THEME_STORAGE_KEY = "medguard-theme";
 
-const ThemeContext = React.createContext<ThemeContextValue | undefined>(undefined);
 
 function getInitialTheme(): Theme {
   if (typeof window === "undefined") {
@@ -56,14 +49,4 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
-}
-
-export function useTheme() {
-  const context = React.useContext(ThemeContext);
-
-  if (!context) {
-    throw new Error("useTheme must be used within a ThemeProvider");
-  }
-
-  return context;
 }

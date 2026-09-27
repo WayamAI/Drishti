@@ -3,12 +3,12 @@ import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, Badge, Btn, Input, Select, Modal, SlideOver, ChartSkeleton, ErrorState, HeadlineSkeleton } from "@/components/ui-bits";
 import { AppIcon } from "@/components/AppIcon";
-import { DataTable, listAsQuery, type Column } from "@/components/DataTable";
+import { DataTable, type Column } from "@/components/DataTable";
+import { listAsQuery } from "@/lib/listQuery";
 import {
-  PageHeader, MetricCard, RiskBadge, RiskScore, formatScore, Tabs, TabPanel, Field, FieldGroup,
-  FilterBar, EntityAvatar, MiniBar, BAND_TONE, BAND_ORDER, bandRank,
-  BAA_TONE, BAA_LABEL,
+  PageHeader, MetricCard, RiskBadge, RiskScore, Tabs, TabPanel, Field, FieldGroup, FilterBar, EntityAvatar, MiniBar,
 } from "@/components/ui-patterns";
+import { formatScore, BAND_TONE, BAND_ORDER, bandRank, BAA_TONE, BAA_LABEL } from "@/lib/risk";
 import { useVendors, useVendor } from "@/hooks/useVendors";
 import { useListControls } from "@/hooks/useListControls";
 import { daysAgoLabel } from "@/lib/dates";

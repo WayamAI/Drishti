@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { RiskScore, formatScore } from "@/components/ui-patterns";
+import {
+  RiskScore,
+} from "@/components/ui-patterns";
+import { formatScore } from "@/lib/risk";
 
 /**
  * The API returns a score as a product of its factors, so some rows come back

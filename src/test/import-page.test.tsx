@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import ImportData from "@/pages/ImportData";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { AuthProvider } from "@/hooks/use-auth";
+import { AuthProvider } from "@/components/AuthProvider";
 import type { ImportReport } from "@/lib/apiTypes";
 
 /* ---------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 import * as React from "react";
 import { api, ApiError, setAuthTokenGetter, setAuthRefreshHandler } from "@/lib/apiClient";
 import { setHadSession } from "@/lib/sessionBreadcrumb";
+import { AuthContext, type AuthContextValue, type AuthUser, type Membership } from "@/hooks/auth-context";
 
 /**
  * Session management against the Drishti API.
@@ -55,21 +56,6 @@ const BOOT_INLINE_MAX_WAIT_MS = 1_500;
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-export type Membership = {
-  organizationId: number;
-  organizationName: string;
-  organizationSlug: string;
-  role: string;
-};
-
-export type AuthUser = {
-  id: number;
-  email: string;
-  name: string;
-  role: string;
-  organizationId: number;
-};
-
 /** POST /api/auth/login and /refresh both return this shape. */
 type SessionResponse = {
   token: string;
@@ -95,27 +81,6 @@ type RefreshResult = {
   retryAfterSeconds: number | null;
 };
 
-type AuthContextValue = {
-  user: AuthUser | null;
-  memberships: Membership[];
-  isAuthenticated: boolean;
-  /** True until the boot-time session probe has settled. */
-  isInitializing: boolean;
-  /**
-   * A refresh came back inconclusive and another attempt is pending.
-   *
-   * Not the same as being signed out. The server never said the session was
-   * invalid — it was rate limited, or unreachable, or it failed — so the
-   * honest thing to tell the user is that we are still checking, not that
-   * their session ended. Goes false the moment the question is answered
-   * either way, or when the retries are exhausted.
-   */
-  isRecovering: boolean;
-  login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
-  logout: () => void;
-};
-
-const AuthContext = React.createContext<AuthContextValue | undefined>(undefined);
 
 function deriveName(email: string): string {
   const localPart = email.split("@")[0] ?? "";
@@ -456,21 +421,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }), [user, memberships, isInitializing, isRecovering, login, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const ctx = React.useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
-  return ctx;
-}
-
-/** Role helpers, so pages stop hand-rolling the same comparisons. */
-export function useCanWrite() {
-  const { user } = useAuth();
-  return user?.role === "ADMIN" || user?.role === "ANALYST";
-}
-
-export function useIsAdmin() {
-  const { user } = useAuth();
-  return user?.role === "ADMIN";
 }

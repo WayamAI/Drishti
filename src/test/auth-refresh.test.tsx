@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { useEffect, useState, type ReactNode } from "react";
-import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { AuthProvider } from "@/components/AuthProvider";
+import { useAuth } from "@/hooks/use-auth";
 import { api, parseRetryAfter, setAuthRefreshHandler, setAuthTokenGetter } from "@/lib/apiClient";
 
 /** Mirrors the provider's own bounds; see use-auth.tsx. */

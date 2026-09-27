@@ -2,11 +2,12 @@ import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, Badge, Btn, Input, Select, Modal, SlideOver, ChartSkeleton, ErrorState } from "@/components/ui-bits";
 import { AppIcon } from "@/components/AppIcon";
-import { DataTable, listAsQuery, type Column } from "@/components/DataTable";
+import { DataTable, type Column } from "@/components/DataTable";
+import { listAsQuery } from "@/lib/listQuery";
 import {
-  PageHeader, MetricCard, RiskBadge, RiskScore, formatScore, Tabs, TabPanel, Field, FieldGroup,
-  FilterBar, EntityAvatar, BAND_TONE, bandRank, SENSITIVITY_TONE,
+  PageHeader, MetricCard, RiskBadge, RiskScore, Tabs, TabPanel, Field, FieldGroup, FilterBar, EntityAvatar,
 } from "@/components/ui-patterns";
+import { formatScore, BAND_TONE, bandRank, SENSITIVITY_TONE } from "@/lib/risk";
 import { DomainIcon } from "@/components/DomainIcon";
 import { useAssets, useAsset } from "@/hooks/useAssets";
 import { useListControls } from "@/hooks/useListControls";

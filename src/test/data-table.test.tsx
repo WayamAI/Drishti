@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within, fireEvent } from "@testing-library/react";
-import { DataTable, withRows, type Column } from "@/components/DataTable";
+import { DataTable, type Column } from "@/components/DataTable";
+import { withRows } from "@/lib/listQuery";
 import type { ApiQueryResult } from "@/hooks/useApiQuery";
 
 /**

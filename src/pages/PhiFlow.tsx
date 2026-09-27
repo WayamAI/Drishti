@@ -4,7 +4,7 @@ import { Card, Badge, Btn, SlideOver, Select } from "@/components/ui-bits";
 import { AppIcon } from "@/components/AppIcon";
 import { PhiSankey, type FlowNode, type FlowLink } from "@/components/PhiSankey";
 import { DataState } from "@/components/DataState";
-import { listAsQuery } from "@/components/DataTable";
+import { listAsQuery } from "@/lib/listQuery";
 import { PageHeader, Field, FieldGroup, EntityAvatar, MetricCard } from "@/components/ui-patterns";
 import { useDataFlows, useRawDataFlows } from "@/hooks/useDataFlows";
 import { notify } from "@/lib/notify";

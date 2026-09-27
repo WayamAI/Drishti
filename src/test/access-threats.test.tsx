@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { AuthProvider } from "@/hooks/use-auth";
+import { AuthProvider } from "@/components/AuthProvider";
 import Access from "@/pages/Access";
 import Threats from "@/pages/Threats";
 import type { ApiAccessGrant, ApiAccessSummary, ApiThreat, ApiThreatSummary } from "@/lib/apiTypes";

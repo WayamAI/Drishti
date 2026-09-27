@@ -4,15 +4,15 @@ import { useNavigate } from "react-router-dom";
 import { Card, Badge, Btn, SectionHeader, ChartSkeleton } from "@/components/ui-bits";
 import { AppIcon } from "@/components/AppIcon";
 import { DataState } from "@/components/DataState";
-import { listAsQuery } from "@/components/DataTable";
+import { listAsQuery } from "@/lib/listQuery";
 import { RiskMatrix } from "@/components/RiskMatrix";
 import { RecentActivity } from "@/components/RecentActivity";
 import { useAuth } from "@/hooks/use-auth";
 import { DomainIcon, type DomainIconName } from "@/components/DomainIcon";
 import {
   PageHeader, MetricCard, RiskBadge, MiniBar, EntityAvatar,
-  BAND_TONE, BAND_ORDER,
 } from "@/components/ui-patterns";
+import { BAND_TONE, BAND_ORDER } from "@/lib/risk";
 import { useAssets } from "@/hooks/useAssets";
 import { useRisks, useRiskMatrix } from "@/hooks/useRisks";
 import { useRawDataFlows } from "@/hooks/useDataFlows";

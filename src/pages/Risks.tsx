@@ -5,11 +5,12 @@ import { Card, Badge, Btn, SectionHeader, SlideOver } from "@/components/ui-bits
 import { AppIcon } from "@/components/AppIcon";
 import { RiskMatrix } from "@/components/RiskMatrix";
 import { DataState } from "@/components/DataState";
-import { DataTable, listAsQuery, type Column } from "@/components/DataTable";
+import { DataTable, type Column } from "@/components/DataTable";
+import { listAsQuery } from "@/lib/listQuery";
 import {
-  PageHeader, MetricCard, RiskBadge, RiskScore, formatScore, Field, FieldGroup, FilterBar,
-  EntityAvatar, MiniBar, BAND_TONE, BAND_ORDER, bandRank,
+  PageHeader, MetricCard, RiskBadge, RiskScore, Field, FieldGroup, FilterBar, EntityAvatar, MiniBar,
 } from "@/components/ui-patterns";
+import { formatScore, BAND_TONE, BAND_ORDER, bandRank } from "@/lib/risk";
 import { useRisks, useRiskMatrix } from "@/hooks/useRisks";
 import { useListControls } from "@/hooks/useListControls";
 import { useRecomputeAssetRisk } from "@/hooks/useMutations";

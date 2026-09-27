@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, Badge, Btn, Input, Select, Textarea, Modal, SlideOver } from "@/components/ui-bits";
 import { AppIcon } from "@/components/AppIcon";
-import { DataTable, listAsQuery, type Column } from "@/components/DataTable";
+import { DataTable, type Column } from "@/components/DataTable";
+import { listAsQuery } from "@/lib/listQuery";
 import { PageHeader, FilterBar, EntityAvatar, Field, FieldGroup } from "@/components/ui-patterns";
 import {
   useControls, useControl, useCreateControl, useUpdateControl,

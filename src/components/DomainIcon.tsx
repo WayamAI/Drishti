@@ -199,4 +199,3 @@ export function DomainIcon({ name, size = 20, className, title }: DomainIconProp
   );
 }
 
-export const DOMAIN_ICON_NAMES = Object.keys(PATHS) as DomainIconName[];

@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Card, Badge, Btn, SlideOver } from "@/components/ui-bits";
 import { AppIcon } from "@/components/AppIcon";
-import { DataTable, listAsQuery, type Column } from "@/components/DataTable";
+import { DataTable, type Column } from "@/components/DataTable";
+import { listAsQuery } from "@/lib/listQuery";
 import { PageHeader, Field, FieldGroup, FilterBar, EntityAvatar } from "@/components/ui-patterns";
 import { useAudit } from "@/hooks/useGovernance";
 import { useListControls } from "@/hooks/useListControls";

@@ -7,35 +7,20 @@ import { DOMAIN_TO_3D, type Icon3DName } from "@/lib/icons3d";
 import { Badge } from "@/components/ui-bits";
 import type { IconName } from "@/lib/icons";
 import type { Tone } from "@/lib/tone";
-import type { RiskBand, BaaStatus, Sensitivity } from "@/lib/apiTypes";
+import type { RiskBand } from "@/lib/apiTypes";
+import { formatScore } from "@/lib/risk";
 
 /**
  * Composite patterns built from ui-bits primitives.
  *
  * ui-bits owns the atoms (Btn, Badge, Card, Input). This file owns the
  * recurring *arrangements* — the page header every screen starts with, the
- * metric tile the dashboard repeats, the risk vocabulary shared by four
- * pages. Split so ui-bits stays a primitives file rather than growing into a
+ * metric tile the dashboard repeats. The risk vocabulary those use lives in
+ * src/lib/risk.ts, so this file exports only components. Split so ui-bits stays a primitives file rather than growing into a
  * dumping ground.
  */
 
 /* ------------------------------------------------------- risk vocabulary */
-
-/**
- * One band→tone map for the whole app.
- *
- * This existed twice (Risks.tsx and Vendors.tsx) with the same values. Two
- * copies of a colour vocabulary is one rename away from a Vendor EXTREME and
- * a Risk EXTREME being different colours, which would quietly teach the
- * viewer that the bands mean different things on different pages.
- */
-export const BAND_TONE: Record<RiskBand, Tone> = {
-  EXTREME: "danger",
-  CRITICAL: "danger",
-  HIGH: "warning",
-  MODERATE: "info",
-  LOW: "success",
-};
 
 /** Fill plus the text colour computed for it (each >= 4.5:1, see tokens.css). */
 const BAND_FILL_CLASS: Record<RiskBand, string> = {
@@ -44,34 +29,6 @@ const BAND_FILL_CLASS: Record<RiskBand, string> = {
   HIGH: "bg-band-badge-high text-band-badge-content",
   MODERATE: "bg-band-badge-moderate text-band-badge-content",
   LOW: "bg-band-badge-low text-band-badge-content",
-};
-
-/** Worst first — the order every band summary and sort uses. */
-export const BAND_ORDER: RiskBand[] = ["EXTREME", "CRITICAL", "HIGH", "MODERATE", "LOW"];
-
-/** Rank for sorting. Higher is worse; unscored returns null so it sinks. */
-export const bandRank = (band: RiskBand | null | undefined): number | null =>
-  band == null ? null : BAND_ORDER.length - BAND_ORDER.indexOf(band);
-
-export const BAA_TONE: Record<BaaStatus, Tone> = {
-  SIGNED: "success",
-  PENDING: "warning",
-  EXPIRED: "danger",
-  MISSING: "danger",
-};
-
-export const BAA_LABEL: Record<BaaStatus, string> = {
-  SIGNED: "Signed",
-  PENDING: "Pending",
-  EXPIRED: "Expired",
-  MISSING: "Missing",
-};
-
-export const SENSITIVITY_TONE: Record<Sensitivity, Tone> = {
-  CRITICAL: "danger",
-  HIGH: "warning",
-  MEDIUM: "info",
-  LOW: "muted",
 };
 
 /**
@@ -98,24 +55,6 @@ export const RiskBadge = ({ band, className }: { band: RiskBand | null; classNam
   ) : (
     <Badge tone="muted" className={className}>Not scored</Badge>
   );
-
-/**
- * A risk score, formatted for display.
- *
- * The API derives a score as a product of its factors, so it returns a whole
- * number for some rows (64, 80, 100) and a two-decimal float for others
- * (38.4, 11.52). Printed raw, one column reads 100 / 80 / 38.4 / 11.52 —
- * ragged precision that implies the engine is more certain about some rows
- * than others. One decimal at most, trailing zero dropped.
- *
- * Nothing is hidden: the exact value stays on the element as a tooltip. And
- * the band badge beside it always comes from the server, so display rounding
- * can never move a row into a band the API did not put it in.
- */
-export const formatScore = (score: number): string => {
-  const rounded = Math.round(score * 10) / 10;
-  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
-};
 
 /** Numeric score, consistently formatted. Em dash when unscored. */
 export const RiskScore = ({

@@ -3,7 +3,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, type ReactNode } from "react";
-import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { AuthProvider } from "@/components/AuthProvider";
+import { useAuth } from "@/hooks/use-auth";
 import Remediation from "@/pages/Remediation";
 import type { ApiRemediationSummary } from "@/lib/apiTypes";
 

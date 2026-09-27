@@ -1,10 +1,12 @@
-import { useTheme } from "next-themes";
-import { Toaster as Sonner, toast } from "sonner";
+import { Toaster as Sonner } from "sonner";
+import { useTheme } from "@/hooks/use-theme";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
+  // The app's own theme. This read next-themes, which the app never mounts,
+  // so toasts followed the OS setting instead of the Light/Dark switch.
+  const { theme } = useTheme();
 
   return (
     <Sonner
@@ -24,4 +26,4 @@ const Toaster = ({ ...props }: ToasterProps) => {
   );
 };
 
-export { Toaster, toast };
+export { Toaster };
