@@ -231,13 +231,18 @@ half-imported register."*
 
 ## Friday 16:00 — Proving it to the auditor  *(Administrator, then Viewer)*
 
-1. **Audit Trail** — every import, revoke, status change and new finding from
-   the week, with who did it and when. Filter by **Imports**, then **Access**.
-2. **Controls** and **Policies** — the safeguards and the documents that cite
+1. **Dashboard** as **admin** — **Recent activity**, beside the risk matrix,
+   already tells the week's story in one glance: the imports ("Threats · 5
+   rows"), the revoke, the threat moving to Investigating, the new findings,
+   each with who did it and when. Choose **Audit trail** from that card.
+2. **Audit Trail** — every event, including sign-ins, with who did it and
+   when. Filter by **Imports**, then **Access**.
+3. **Controls** and **Policies** — the safeguards and the documents that cite
    them, with their assessed status.
-3. Back to **Dashboard** as **viewer**. The week's work shows in the Action
+4. Back to **Dashboard** as **viewer**. The week's work shows in the Action
    Centre: the new criticals are owned, the revoked grant is gone from the
-   flagged count.
+   flagged count. There is no activity feed here — the audit trail is for
+   administrators only, and a viewer's dashboard does not even ask for it.
 
 **Say:** *"The auditor's question is not 'are you secure', it is 'show me'.
 This is the showing."*
@@ -250,7 +255,7 @@ This is the showing."*
 2. Oncology go-live — assets, flows, PHI Flow map (4 min)
 3. Wednesday SIEM — pump gateway threat → **Raise remediation** (3 min)
 4. The refused file (1 min)
-5. Audit Trail (1 min)
+5. Recent activity on the Dashboard, then Audit Trail (1 min)
 
 ---
 
